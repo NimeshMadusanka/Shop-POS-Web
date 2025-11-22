@@ -24,7 +24,6 @@ import { useState } from 'react';
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import MrTraveller from '../../../../assets/logo.png';
 import { NewPaymentCreate } from '../../../../@types/user';
 
 type Props = {
@@ -115,13 +114,16 @@ export default function PaymentTableRow({
     const marginLeft = 20;
     let currentY = 20;
 
-    const imageWidth = 20;
-    const imageHeight = 20;
-
     // Topper: Logo + Company Info
-    if (MrTraveller) {
-      doc.addImage(MrTraveller, 'PNG', 10, 10, imageWidth, imageHeight);
-    }
+    // Note: For PDF, you may need to convert SVG to PNG or use a base64 encoded image
+    // For now, using text-based logo
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 152, 0); // Primary orange color
+    doc.text('POS', 10, 20);
+    doc.setFontSize(12);
+    doc.setTextColor(255, 193, 7); // Secondary gold color
+    doc.text('SHOP', 10, 28);
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
@@ -283,17 +285,17 @@ export default function PaymentTableRow({
             <Divider sx={{ mb: 2 }} /> */}
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ backgroundColor: '#0066CC', height: 56 }}>
-                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: '#0066CC', fontSize: '15px' }}>
+                <TableRow sx={{ backgroundColor: '#FF9800', height: 56 }}>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: '#FF9800', fontSize: '15px' }}>
                     Product
                   </TableCell>
-                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: '#0066CC', fontSize: '15px' }}>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: '#FF9800', fontSize: '15px' }}>
                     Qty
                   </TableCell>
-                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: '#0066CC' , fontSize: '15px'}}>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: '#FF9800' , fontSize: '15px'}}>
                     Unit Price
                   </TableCell>
-                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: '#0066CC' , fontSize: '15px'}}>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: '#FF9800' , fontSize: '15px'}}>
                     Total
                   </TableCell>
                 </TableRow>
@@ -321,7 +323,7 @@ export default function PaymentTableRow({
 
             <Divider sx={{ my: 3 }} />
 
-            <Typography variant="h6" gutterBottom sx={{ color: '#0066CC' }}>
+            <Typography variant="h6" gutterBottom sx={{ color: '#FF9800' }}>
               Payment:
             </Typography>
 
@@ -358,7 +360,7 @@ export default function PaymentTableRow({
             </Grid>
 
             <Divider sx={{ my: 3 }} />
-            <Typography variant="h6" gutterBottom sx={{ color: '#0066CC' }}>
+            <Typography variant="h6" gutterBottom sx={{ color: '#FF9800' }}>
               Payment Method:
             </Typography>
 
@@ -415,7 +417,7 @@ export default function PaymentTableRow({
                   fontWeight: 600,
                   position: 'relative',
                   right: '80px',
-                  color: '#0066CC',
+                  color: '#FF9800',
                 }}
               >
                 Balance
@@ -425,7 +427,7 @@ export default function PaymentTableRow({
                 fontWeight={700}
                 color="primary"
                 sx={{
-                  color: '#0066CC',
+                  color: '#FF9800',
                 }}
               >
                 {typeof balance === 'number' ? `${balance.toFixed(2)}` : '--'}
@@ -510,10 +512,10 @@ export default function PaymentTableRow({
                   onClick={handleDownload}
                   sx={{
                     height: '80px',
-                    backgroundColor: '#0066CC',
+                    backgroundColor: '#FF9800',
                       fontSize: '18px', 
                     '&:hover': {
-                      backgroundColor: '#6E9FC1',
+                      backgroundColor: '#FFB74D',
                     },
                   }}
                 >
@@ -528,10 +530,10 @@ export default function PaymentTableRow({
                   onClick={handleEnter}
                   sx={{
                     height: '80px',
-                    backgroundColor: '#0066CC',
+                    backgroundColor: '#FF9800',
                     fontSize: '18px', 
                     '&:hover': {
-                      backgroundColor: '#6E9FC1',
+                      backgroundColor: '#FFB74D',
                     },
                   }}
                 >

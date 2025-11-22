@@ -28,7 +28,7 @@ export default function AnalyticsWebsiteVisits({ title, subheader, chart, ...oth
   const { labels, colors, series, options, xAxisLabel, yAxisLabel } = chart;
 
   const chartOptions = useChart({
-    colors: colors || ['#0066CC', '#33FF57', '#FF33A1', '#3380FF'],
+    colors: colors || ['#FF9800', '#33FF57', '#FF33A1', '#FFC107'],
     plotOptions: {
       bar: {
         columnWidth: '30%',

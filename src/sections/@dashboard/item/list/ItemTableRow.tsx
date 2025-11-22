@@ -106,12 +106,12 @@ export default function ItemTableRow({
               size="small"
               onClick={handleOpenDialog}
               sx={{
-                backgroundColor: '#0066CC',
+                backgroundColor: '#FF9800',
                 color: '#ffffff',
                 width: 28,
                 height: 28,
                 '&:hover': {
-                  backgroundColor: '#004999',
+                  backgroundColor: '#F57C00',
                 },
               }}
             >

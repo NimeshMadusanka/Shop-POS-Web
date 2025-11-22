@@ -256,9 +256,9 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
           py: 2.5,
           fontSize: '22px',
           borderRadius: '14px',
-          backgroundColor: '#0066CC',
+          backgroundColor: '#FF9800',
           ':hover': {
-            backgroundColor: '#6E9FC1',
+            backgroundColor: '#FFB74D',
             color: '#ffffff',
           },
         }}

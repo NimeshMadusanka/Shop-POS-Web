@@ -58,7 +58,6 @@ type FormValuesProps = {
   companyName: string;
   regNo: string;
   industry: string;
-  role: string;
   userId?: string;
   salonImage?: File | null; 
   afterSubmit?: string;
@@ -104,8 +103,6 @@ export default function AuthEmployeeSignup() {
       companyName: queryParams.get('companyName') || '',
       regNo: queryParams.get('regNo') || '',
       industry: '',
-      role: queryParams.get('role') || '',
-      employee: Boolean(queryParams.get('employee') === 'true'),
       userId: queryParams.get('userId') || '',
     };
   }, [location.search]);
@@ -148,7 +145,6 @@ export default function AuthEmployeeSignup() {
         companyName: data.companyName,
         regNo: data.regNo,
         industry: data.industry,
-        role: data.role || '',
        salonImage: typeof data.salonImage === "string" ? data.salonImage : "", 
         companyID: data.companyID || '',
       };
@@ -253,10 +249,10 @@ await createSignupCompanyApi(payload, false);
               <LoadingButton
                 onClick={() => setValue(1)}
                 sx={{
-                  bgcolor: '#0066CC',
+                  bgcolor: '#FF9800',
                   color: (theme) => (theme.palette.mode === 'light' ? 'common.white' : 'grey.800'),
                   '&:hover': {
-                    backgroundColor: '#6E9FC1',
+                    backgroundColor: '#FFB74D',
                     color: '#ffffff',
                   },
                 }}
@@ -289,10 +285,10 @@ await createSignupCompanyApi(payload, false);
                 type="submit"
                 variant="contained"
                 sx={{
-                  bgcolor: '#0066CC',
+                  bgcolor: '#FF9800',
                   color: (theme) => (theme.palette.mode === 'light' ? 'common.white' : 'grey.800'),
                   '&:hover': {
-                    backgroundColor: '#6E9FC1',
+                    backgroundColor: '#FFB74D',
                     color: '#ffffff',
                   },
                 }}

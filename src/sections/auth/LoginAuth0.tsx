@@ -48,10 +48,10 @@ export default function LoginAuth0() {
         variant="contained"
         onClick={handleLoginAuth0}
         sx={{
-          bgcolor: '#22345B',
+          bgcolor: '#FF9800',
           color: (theme) => (theme.palette.mode === 'light' ? 'common.white' : 'grey.800'),
           '&:hover': {
-            bgcolor: '#22345B',
+            bgcolor: '#FFB74D',
             color: (theme) => (theme.palette.mode === 'light' ? 'common.white' : 'grey.800'),
           },
         }}

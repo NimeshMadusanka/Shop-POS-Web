@@ -3,8 +3,8 @@ import { forwardRef } from 'react';
 // import { useTheme } from '@mui/material/styles';
 import { Box, Link, BoxProps, Typography } from '@mui/material';
 
-import PRSMiniLogo from 'src/assets/logo_mini.png';
-import PRSLogo from 'src/assets/logo.png';
+import PRSMiniLogo from 'src/assets/logo_mini.svg';
+import PRSLogo from 'src/assets/logo.svg';
 
 // ----------------------------------------------------------------------
 
@@ -50,7 +50,7 @@ const Logo = forwardRef<HTMLDivElement, LogoProps>(
       >
         {/* <img src={PRSIcon} alt="" width={30} /> */}
        
-        <img src={PRSLogo} alt="PRS Logo" width={100} style={{ maxWidth: '100%', height: 'auto' }} />
+        <img src={PRSLogo} alt="POS Shop Logo" width={120} style={{ maxWidth: '100%', height: 'auto' }} />
 
 
         {/* <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 512 512">
