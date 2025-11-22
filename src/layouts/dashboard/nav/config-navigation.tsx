@@ -34,29 +34,8 @@ const ICONS = {
   dashboard: icon('ic_dashboard'),
 };
 
-const navConfigsuperAdmin = [
-  // GENERAL
-  {
-    subheader: 'general',
-    items: [
-      { title: 'dashboard', path: PATH_DASHBOARD.general.dachboard, icon: ICONS.analytics },
-
-      {
-        title: 'Category',
-        path: PATH_DASHBOARD.category.root,
-        icon: ICONS.blog,
-        children: [
-          { title: 'Add Category', path: PATH_DASHBOARD.category.new },
-
-          { title: 'View Categories', path: PATH_DASHBOARD.category.list },
-        ],
-      },
-    ],
-  },
-  // MANAGEMENT
-];
-
-const navConfigonAdmin = [
+// Single admin navigation config - all admins have the same access
+const navConfigAdmin = [
   // GENERAL
   {
     subheader: 'general',
@@ -165,10 +144,10 @@ const navConfigonAdmin = [
   // MANAGEMENT
 ];
 
-// Export both the configs and the hook
-export { navConfigsuperAdmin, navConfigonAdmin };
+// Export the config
+export { navConfigAdmin };
 
 export default function useNavConfig() {
-  const { user } = useAuthContext();
-  return user?.role === 'super-admin' ? navConfigsuperAdmin : navConfigonAdmin;
+  // All users are admins, so return the same config for everyone
+  return navConfigAdmin;
 }

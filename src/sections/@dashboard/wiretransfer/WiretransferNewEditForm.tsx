@@ -321,9 +321,9 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
         append({ service: { _id: '', itemName: '', itemPrice: '' }, quantity: 1 })
       }
       sx={{
-        backgroundColor: '#0066CC',
+        backgroundColor: '#FF9800',
         color: '#ffffff',
-        '&:hover': { backgroundColor: '#004999' },
+        '&:hover': { backgroundColor: '#F57C00' },
         width: 36,
         height: 36,
       }}
@@ -369,9 +369,9 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
               append({ service: { _id: '', itemName: '', itemPrice: '' }, quantity: 1 })
             }
             sx={{
-              backgroundColor: '#0066CC',
+              backgroundColor: '#FF9800',
               color: '#ffffff',
-              '&:hover': { backgroundColor: '#004999' },
+              '&:hover': { backgroundColor: '#F57C00' },
               width: 36,
               height: 36,
             }}
@@ -506,12 +506,12 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
                 variant="contained"
                 loading={isSubmitting}
                 sx={{
-                  backgroundColor: '#0066CC',
+                  backgroundColor: '#FF9800',
                   fontWeight: 500,
                   letterSpacing: 0,
                   opacity: 1,
                   ':hover': {
-                    backgroundColor: '#6E9FC1',
+                    backgroundColor: '#FFB74D',
                     color: '#ffffff',
                   },
                 }}

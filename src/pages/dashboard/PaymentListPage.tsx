@@ -214,9 +214,9 @@ export default function PaymentListPage() {
               onClick={loadData}
               disabled={dataLoad}
               sx={{
-                borderColor: '#0066CC',
-                color: '#0066CC',
-                '&:hover': { borderColor: '#004999', backgroundColor: '#f5f5f5' },
+                borderColor: '#FF9800',
+                color: '#FF9800',
+                '&:hover': { borderColor: '#F57C00', backgroundColor: '#fff3e0' },
               }}
             >
               Refresh

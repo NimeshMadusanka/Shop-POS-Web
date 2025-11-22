@@ -19,7 +19,7 @@ import {
 import Scrollbar from '../../../../components/scrollbar';
 import { TextField } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import MrTraveller from '../../../../assets/logo.png';
+import MrTraveller from '../../../../assets/logo.svg';
 // import { getStockInData, getStockMonthlyData } from '../../../../api/ProductmetaApi';
 
 // ----------------------------------------------------------------------
@@ -73,7 +73,7 @@ export default function InvoiceDetails() {
         variant="contained"
         onClick={handleDailySales}
         sx={{
-          backgroundColor: '#6E9FC1',
+          backgroundColor: '#FFB74D',
           color: '#ffffff',
           fontWeight: 500,
           letterSpacing: 0,
@@ -92,7 +92,7 @@ export default function InvoiceDetails() {
         variant="contained"
         onClick={handleMonthlySales}
         sx={{
-          backgroundColor: '#0066CC',
+          backgroundColor: '#FF9800',
           color: '#ffffff',
           fontWeight: 500,
           marginBottom: 2,

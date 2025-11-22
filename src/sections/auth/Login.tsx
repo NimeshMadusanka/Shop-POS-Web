@@ -1,7 +1,7 @@
 import { Stack, Typography } from '@mui/material';
 import { LoginText } from '../../components/logo';
 import Image from '../../components/image';
-import PRSLogo from '../../assets/logo.png';
+import PRSLogo from '../../assets/logo.svg';
 import LoginLayout from '../../layouts/login';
 import AuthLoginForm from './AuthLoginForm';
 
@@ -29,7 +29,7 @@ export default function Login() {
           zIndex: 9,
           position: 'absolute',
           bottom: 0,
-          color: '#22345B',
+          color: '#FF9800',
           mb: { xs: 1.5, md: 3 },
           mr: { xs: 2, md: 5 },
         }}

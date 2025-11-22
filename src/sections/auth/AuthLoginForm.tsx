@@ -97,10 +97,10 @@ export default function AuthLoginForm() {
         loading={isSubmitSuccessful || isSubmitting}
         sx={{
           marginTop: '2rem',
-          bgcolor: '#0066CC',
+          bgcolor: '#FF9800',
           color: (theme) => (theme.palette.mode === 'light' ? 'common.white' : 'grey.800'),
           '&:hover': {
-            bgcolor: '#0066CC',
+            bgcolor: '#FFB74D',
             color: (theme) => (theme.palette.mode === 'light' ? 'common.white' : 'grey.800'),
           },
         }}
@@ -116,10 +116,10 @@ export default function AuthLoginForm() {
           variant="contained"
           loading={isSubmitSuccessful || isSubmitting}
           sx={{
-            bgcolor: '#0066CC',
+            bgcolor: '#FF9800',
             color: (theme) => (theme.palette.mode === 'light' ? 'common.white' : 'grey.800'),
             '&:hover': {
-              backgroundColor: '#6E9FC1',
+              backgroundColor: '#FFB74D',
               color: '#ffffff',
             },
           }}
@@ -134,10 +134,10 @@ export default function AuthLoginForm() {
           variant="contained"
           onClick={() => navigate(PATH_AUTH.signUp)} // 🔁 Update to your actual signup path
           sx={{
-            bgcolor: '#0066CC',
+            bgcolor: '#FF9800',
             color: (theme) => (theme.palette.mode === 'light' ? 'common.white' : 'grey.800'),
             '&:hover': {
-              backgroundColor: '#6E9FC1',
+              backgroundColor: '#FFB74D',
               color: '#ffffff',
             },
           }}
@@ -152,10 +152,10 @@ export default function AuthLoginForm() {
           variant="body2"
           underline="hover"
           sx={{
-            color: '#0066CC',
+            color: '#FF9800',
             mr: 36,
             '&:hover': {
-              color: '#1A2B4C',
+              color: '#F57C00',
             },
           }}
           onClick={forgotpassword}

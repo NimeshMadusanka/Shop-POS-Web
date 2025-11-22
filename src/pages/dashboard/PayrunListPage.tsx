@@ -164,14 +164,14 @@ export default function PayRunListPage() {
         {/* Summary Cards */}
         <Grid container spacing={3} sx={{ mb: 3 }}>
           <Grid item xs={12} md={3}>
-            <Card sx={{ p: 3, textAlign: 'center', backgroundColor: '#BCD6F0 ' }}>
+            <Card sx={{ p: 3, textAlign: 'center', backgroundColor: '#FFE0B2' }}>
               <Typography variant="h6">Total Employees</Typography>
               <Typography variant="h4">{tableData.length}</Typography>
             </Card>
           </Grid>
 
           <Grid item xs={12} md={3}>
-            <Card sx={{ p: 3, textAlign: 'center', backgroundColor: '#BCD6F0 ' }}>
+            <Card sx={{ p: 3, textAlign: 'center', backgroundColor: '#FFE0B2' }}>
               <Typography variant="h6">Total EPF</Typography>
               <Typography variant="h4">
                 {new Intl.NumberFormat('en-LK', {
@@ -188,7 +188,7 @@ export default function PayRunListPage() {
           </Grid>
 
           <Grid item xs={12} md={3}>
-            <Card sx={{ p: 3, textAlign: 'center', backgroundColor: '#BCD6F0 ' }}>
+            <Card sx={{ p: 3, textAlign: 'center', backgroundColor: '#FFE0B2' }}>
               <Typography variant="h6">Total Allowances</Typography>
               <Typography variant="h4">
                 {new Intl.NumberFormat('en-LK', {
@@ -200,7 +200,7 @@ export default function PayRunListPage() {
           </Grid>
 
           <Grid item xs={12} md={3}>
-            <Card sx={{ p: 3, textAlign: 'center', backgroundColor: '#BCD6F0 ' }}>
+            <Card sx={{ p: 3, textAlign: 'center', backgroundColor: '#FFE0B2' }}>
               <Typography variant="h6">Total Deductions</Typography>
               <Typography variant="h4">
                 {new Intl.NumberFormat('en-LK', {

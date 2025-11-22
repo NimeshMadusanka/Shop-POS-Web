@@ -99,7 +99,7 @@ export default function CustomizedDialogsStockDetails({ setTableData }: Props) {
         aria-label="open"
         onClick={handleClickOpen}
         sx={{
-          backgroundColor: '#0066CC',
+          backgroundColor: '#FF9800',
           color: '#ffffff',
           fontWeight: 500,
           letterSpacing: 0,
@@ -200,13 +200,13 @@ export default function CustomizedDialogsStockDetails({ setTableData }: Props) {
                   variant="contained"
                   onClick={handleSetTableData}
                   sx={{
-                    backgroundColor: '#0066CC',
+                    backgroundColor: '#FF9800',
                     fontWeight: 500,
                     letterSpacing: 0,
                     width: '5rem',
                     opacity: 1,
                     ':hover': {
-                      backgroundColor: '#6E9FC1',
+                      backgroundColor: '#FFB74D',
                     },
                   }}
                 >

@@ -23,7 +23,7 @@ export default function InvoicePDF({ productData, totalRate }: Props) {
         {/* Header */}
         <View style={styles.gridContainer}>
           <Image
-            source={require('../../../../assets/logo.png')}
+            source={require('../../../../assets/logo.svg')}
             style={{ width: 50, height: 50 }}
           />
           <View style={{ alignItems: 'flex-start', marginBottom: 40 }}>

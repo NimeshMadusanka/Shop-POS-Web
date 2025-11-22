@@ -199,10 +199,10 @@ export default function EmployeeListPage() {
             onClick={handleGenerateSalary}
             sx={{
               width: '200px',
-              bgcolor: '#0066CC',
+              bgcolor: '#FF9800',
               color: (theme) => (theme.palette.mode === 'light' ? 'common.white' : 'grey.800'),
               '&:hover': {
-                bgcolor: '#0066CC',
+                bgcolor: '#FFB74D',
                 color: (theme) => (theme.palette.mode === 'light' ? '#333333' : 'grey.800'),
               },
             }}

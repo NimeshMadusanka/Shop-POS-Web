@@ -16,11 +16,11 @@ export const presets = [
   // CYAN
   {
     name: 'default',
-    lighter: '#d1c3fa',
-    light: '#a485ff',
-    main: '#1D355E',
-    dark: '#3104b8',
-    darker: '#210182',
+    lighter: '#FFF3E0',
+    light: '#FFB74D',
+    main: '#FF9800',
+    dark: '#F57C00',
+    darker: '#E65100',
     contrastText: '#FFFFFF',
   },
   // PURPLE

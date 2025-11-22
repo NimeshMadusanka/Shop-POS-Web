@@ -96,7 +96,7 @@ export default function GeneralAnalyticsPage() {
                 total={dashboardData.totalProducts || 0}
                 color="primary"
                 icon=""
-                sx={{ backgroundColor: '#6E9FC1', color: 'black' }}
+                sx={{ backgroundColor: '#FFB74D', color: 'black' }}
               />
             </Grid>
 
@@ -106,7 +106,7 @@ export default function GeneralAnalyticsPage() {
                 total={dashboardData.totalTransactions || 0}
                 color="info"
                 icon=""
-                sx={{ backgroundColor: '#A3CAE9' }}
+                sx={{ backgroundColor: '#FFCC80' }}
               />
             </Grid>
 
@@ -137,7 +137,7 @@ export default function GeneralAnalyticsPage() {
                   series: chartSeries,
                   xAxisLabel: 'Date',
                   yAxisLabel: 'Amount',
-                  colors: ['#0066CC', '#4caf50', '#f44336'],
+                  colors: ['#FF9800', '#4caf50', '#f44336'],
                 }}
               />
             </Grid>
