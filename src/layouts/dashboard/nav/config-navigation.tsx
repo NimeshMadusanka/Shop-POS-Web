@@ -1,5 +1,4 @@
 import { PATH_DASHBOARD } from '../../../routes/paths';
-import { useAuthContext } from '../../../auth/useAuthContext';
 
 // components
 import SvgColor from '../../../components/svg-color';
@@ -64,14 +63,11 @@ const navConfigAdmin = [
       // },
       {
         title: 'Sales',
-        path: PATH_DASHBOARD.payment.root,
-        icon: ICONS.invoice,
+        path: PATH_DASHBOARD.analytics.root,
+        icon: ICONS.analytics,
         children: [
-          { title: 'New Sale', path: PATH_DASHBOARD.payment.new  },
- 
-          { title: 'Sales History', path: PATH_DASHBOARD.payment.list },
           { title: 'Analytics', path: PATH_DASHBOARD.analytics.list },
-           
+          { title: 'Sales Report', path: PATH_DASHBOARD.salesReport.list },
         ],
       },
 
@@ -105,7 +101,24 @@ const navConfigAdmin = [
     {
     subheader: 'Management',
     items: [
-     
+      {
+        title: 'Payment',
+        path: PATH_DASHBOARD.payment.root,
+        icon: ICONS.invoice,
+        children: [
+          { title: 'New Sale', path: PATH_DASHBOARD.payment.new },
+          { title: 'Sales History', path: PATH_DASHBOARD.payment.list },
+        ],
+      },
+      {
+        title: 'Category',
+        path: PATH_DASHBOARD.category.root,
+        icon: ICONS.label,
+        children: [
+          { title: 'Add Category', path: PATH_DASHBOARD.category.new },
+          { title: 'View Categories', path: PATH_DASHBOARD.category.list },
+        ],
+      },
       {
         title: 'Product',
         path: PATH_DASHBOARD.item.root,

@@ -32,4 +32,17 @@ const getPaymentData = async (companyID: string) => {
   return response?.data;
 };
 
-export { getPaymentData, createPaymentApi, updatePaymentApi };
+type ReturnItem = {
+  itemId: string;
+  quantity: number;
+};
+
+const returnStockApi = async (paymentId: string, returnItems: ReturnItem[], companyID: string) => {
+  const response = await axios.post(`/payment/${paymentId}/return`, {
+    returnItems,
+    companyID,
+  });
+  return response?.data;
+};
+
+export { getPaymentData, createPaymentApi, updatePaymentApi, returnStockApi };

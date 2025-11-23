@@ -134,6 +134,7 @@ import {
   PaymentListPage,
   PaymentEditPage,
   AnalyticsPage,
+  SalesReportPage,
   CardViewPage,
   WiretransferCreatePage,
   CusloyaltyCreatePage,
@@ -304,6 +305,12 @@ export default function Router() {
           path: 'analytics',
           children: [
             { path: 'list', element: <AnalyticsPage /> },
+          ],
+        },
+        {
+          path: 'sales-report',
+          children: [
+            { path: 'list', element: <SalesReportPage /> },
           ],
         },
 

@@ -99,6 +99,7 @@ export const PaymentCreatePage = Loadable(
 export const PaymentListPage = Loadable(lazy(() => import('../pages/dashboard/PaymentListPage')));
 export const PaymentEditPage = Loadable(lazy(() => import('../pages/dashboard/PaymentEditPage')));
 export const AnalyticsPage = Loadable(lazy(() => import('../pages/dashboard/AnalyticsPage')));
+export const SalesReportPage = Loadable(lazy(() => import('../pages/dashboard/SalesReportPage')));
 export const CardViewPage = Loadable(lazy(() => import('../pages/dashboard/CardViewPage')));
 export const WiretransferCreatePage = Loadable(lazy(() => import('../pages/dashboard/WireTranserCreatePage')));
 export const PayRunListPage = Loadable(lazy(() => import('../pages/dashboard/PayrunListPage')));

@@ -172,7 +172,7 @@ export default function PaymentListPage() {
     } finally {
       setDataLoad(false);
     }
-  }, [user?.companyID]);
+  }, [user]);
 
   useEffect(() => {
     loadData();
@@ -286,6 +286,7 @@ export default function PaymentListPage() {
                                 onSelectRow={() => onSelectRow(row._id)}
                                 onEditRow={() => handleEditRow(row._id, { state: row })}
                                 onDeleteRow={() => handleDeleteRow(row._id)}
+                                onRefresh={loadData}
                               />
                             );
                           } catch (err) {

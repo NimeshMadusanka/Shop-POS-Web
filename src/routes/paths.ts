@@ -154,6 +154,10 @@ payrun: {
     root: path(ROOTS_DASHBOARD, '/analytics'),
     list: path(ROOTS_DASHBOARD, '/analytics/list'),
   },
+  salesReport: {
+    root: path(ROOTS_DASHBOARD, '/sales-report'),
+    list: path(ROOTS_DASHBOARD, '/sales-report/list'),
+  },
 
   category: {
     root: path(ROOTS_DASHBOARD, '/category'),

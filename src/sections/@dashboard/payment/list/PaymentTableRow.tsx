@@ -17,9 +17,10 @@ import {
 
 import PaymentIcon from '@mui/icons-material/Payment';
 import CloseIcon from '@mui/icons-material/Close';
-
+import EditIcon from '@mui/icons-material/Edit';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import { useState } from 'react';
+import ReturnStockDialog from './ReturnStockDialog';
 
 
 import jsPDF from 'jspdf';
@@ -32,6 +33,7 @@ type Props = {
   onEditRow: VoidFunction;
   onSelectRow: VoidFunction;
   onDeleteRow: VoidFunction;
+  onRefresh?: VoidFunction;
 };
 
 declare module 'jspdf' {
@@ -48,10 +50,12 @@ export default function PaymentTableRow({
   onSelectRow,
   onEditRow,
   onDeleteRow,
+  onRefresh,
 }: Props) {
   // Hooks must be called before any conditional returns
   const [open, setOpen] = useState(false);
   const [openPaidDialog, setOpenPaidDialog] = useState(false);
+  const [openReturnDialog, setOpenReturnDialog] = useState(false);
   const [cashInput, setCashInput] = useState('');
   const [cash, setCash] = useState<number | ''>('');
   const [balance, setBalance] = useState<number | ''>('');
@@ -61,7 +65,7 @@ export default function PaymentTableRow({
     return null;
   }
 
-  const { grandTotal, date, customerName, items, discount, cashPaid, wirePaid } = row;
+  const { grandTotal, date, customerName, items, discount, cashPaid, wirePaid, _id } = row;
   
   // Safety checks for required fields
   if (!items || !Array.isArray(items)) {
@@ -249,23 +253,40 @@ export default function PaymentTableRow({
                 color: '#800000',
               },
             }}
+            title="View Invoice"
           >
             <PaymentIcon />
           </IconButton>
-           <IconButton
-    onClick={() => setOpenPaidDialog(true)}
-    sx={{
-      backgroundColor: '#004d99',
-      color: '#ffffff',
-      ml: 1,
-      ':hover': {
-        backgroundColor: '#ffffff',
-        color: '#004d99',
-      },
-    }}
-  >
-    <ReceiptIcon />
-  </IconButton>
+          <IconButton
+            onClick={() => setOpenPaidDialog(true)}
+            sx={{
+              backgroundColor: '#004d99',
+              color: '#ffffff',
+              ml: 1,
+              ':hover': {
+                backgroundColor: '#ffffff',
+                color: '#004d99',
+              },
+            }}
+            title="Payment Details"
+          >
+            <ReceiptIcon />
+          </IconButton>
+          <IconButton
+            onClick={() => setOpenReturnDialog(true)}
+            sx={{
+              backgroundColor: '#FF9800',
+              color: '#ffffff',
+              ml: 1,
+              ':hover': {
+                backgroundColor: '#ffffff',
+                color: '#FF9800',
+              },
+            }}
+            title="Return Stock"
+          >
+            <EditIcon />
+          </IconButton>
         </TableCell>
       </TableRow>
 
@@ -598,6 +619,24 @@ export default function PaymentTableRow({
 
 </Dialog>
 
+      {/* Return Stock Dialog */}
+      {_id && items && Array.isArray(items) && (
+        <ReturnStockDialog
+          open={openReturnDialog}
+          onClose={() => setOpenReturnDialog(false)}
+          paymentId={_id}
+          items={items.map((item) => ({
+            itemId: item.itemId?.toString() || '',
+            itemName: item.itemName || 'N/A',
+            quantity: item.quantity || 0,
+          }))}
+          onSuccess={() => {
+            if (onRefresh) {
+              onRefresh();
+            }
+          }}
+        />
+      )}
     </>
   );
 }

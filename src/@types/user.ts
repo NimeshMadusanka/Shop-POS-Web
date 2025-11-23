@@ -197,7 +197,7 @@ export type StockActivity = {
   itemId: string;
   itemName: string;
   amount: number;
-  operationType: 'Stock-in' | 'Stock-out';
+  operationType: 'Stock-in' | 'Stock-out' | 'Returned-Stock-in';
   operationDate: string;
   paymentId?: string | null;
 };
