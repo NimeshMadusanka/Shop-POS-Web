@@ -39,7 +39,7 @@ export default function UserTableToolbar({
         fullWidth
         value={filterName}
         onChange={onFilterName}
-        placeholder="Search..."
+        placeholder="Search by invoice number..."
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">

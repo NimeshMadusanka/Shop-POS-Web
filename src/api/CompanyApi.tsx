@@ -19,25 +19,4 @@ type CreateUser = {
 //   return response?.data;
 // };
 
-  const createSignupCompanyApi = (
-  data: FormData | Record<string, any>, 
-  isMultipart = false
-) => {
-  if (isMultipart) {
-    return axios.post("/user/signup", data, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-  }
-  return axios.post("/user/signup", data); // plain JSON
-};
-
-
-
-const createSignupUserApi = async (payload: CreateUser, boolValue: boolean) => {
-  const response = await axios.post(`/user/signup`, payload);
-  return response?.data;
-};
-
-
-
-export { createSignupCompanyApi, createSignupUserApi };
+// Signup functionality removed

@@ -1,4 +1,6 @@
 import { PATH_DASHBOARD } from '../../../routes/paths';
+import { useAuthContext } from '../../../auth/useAuthContext';
+import { useAdminUnlock } from '../../../contexts/AdminUnlockContext';
 
 // components
 import SvgColor from '../../../components/svg-color';
@@ -68,6 +70,7 @@ const navConfigAdmin = [
         children: [
           { title: 'Analytics', path: PATH_DASHBOARD.analytics.list },
           { title: 'Sales Report', path: PATH_DASHBOARD.salesReport.list },
+          { title: 'Daily Reports', path: PATH_DASHBOARD.dailyReport.list },
         ],
       },
 
@@ -101,6 +104,15 @@ const navConfigAdmin = [
     {
     subheader: 'Management',
     items: [
+      {
+        title: 'User',
+        path: PATH_DASHBOARD.user.root,
+        icon: ICONS.user,
+        children: [
+          { title: 'Add User', path: PATH_DASHBOARD.user.new },
+          { title: 'View Users', path: PATH_DASHBOARD.user.list },
+        ],
+      },
       {
         title: 'Payment',
         path: PATH_DASHBOARD.payment.root,
@@ -139,6 +151,33 @@ const navConfigAdmin = [
           { title: 'View Discounts', path: PATH_DASHBOARD.cusloyalty.list },
         ],
       },
+      {
+        title: 'Brand',
+        path: PATH_DASHBOARD.brand.root,
+        icon: ICONS.label,
+        children: [
+          { title: 'Add Brand', path: PATH_DASHBOARD.brand.new },
+          { title: 'View Brands', path: PATH_DASHBOARD.brand.list },
+        ],
+      },
+      {
+        title: 'Provider',
+        path: PATH_DASHBOARD.provider.root,
+        icon: ICONS.user,
+        children: [
+          { title: 'Add Provider', path: PATH_DASHBOARD.provider.new },
+          { title: 'View Providers', path: PATH_DASHBOARD.provider.list },
+        ],
+      },
+      {
+        title: 'Shop',
+        path: PATH_DASHBOARD.shop.root,
+        icon: ICONS.ecommerce,
+        children: [
+          { title: 'Add Shop', path: PATH_DASHBOARD.shop.new },
+          { title: 'View Shops', path: PATH_DASHBOARD.shop.list },
+        ],
+      },
 
    
       // ROLE SECTION - COMMENTED OUT
@@ -157,10 +196,30 @@ const navConfigAdmin = [
   // MANAGEMENT
 ];
 
-// Export the config
-export { navConfigAdmin };
+// Cashier navigation config - minimal, only cashier view
+const navConfigCashier = [
+  {
+    subheader: 'Cashier',
+    items: [
+      {
+        title: 'Cashier',
+        path: PATH_DASHBOARD.cashier.root,
+        icon: ICONS.invoice,
+      },
+    ],
+  },
+];
+
+// Export the configs
+export { navConfigAdmin, navConfigCashier };
 
 export default function useNavConfig() {
-  // All users are admins, so return the same config for everyone
+  const { user } = useAuthContext();
+  const { isAdminUnlocked } = useAdminUnlock();
+  
+  // Return admin config if user is admin OR if cashier has unlocked admin access
+  if (user?.role === 'cashier' && !isAdminUnlocked) {
+    return navConfigCashier;
+  }
   return navConfigAdmin;
 }

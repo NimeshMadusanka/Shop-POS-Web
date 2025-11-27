@@ -1,7 +1,7 @@
 // routes
 import { PATH_AUTH, PATH_DOCS, PATH_PAGE } from '../../../routes/paths';
 // config
-import { PATH_AFTER_LOGIN , PATH_AFTER_SIGNUP } from '../../../config-global';
+import { PATH_AFTER_LOGIN } from '../../../config-global';
 // components
 import Iconify from '../../../components/iconify';
 
@@ -39,7 +39,7 @@ const navConfig = [
         subheader: 'Authentication',
         items: [
           { title: 'Login', path: PATH_AUTH.loginUnprotected  },
-          { title: 'Login', path: PATH_AFTER_SIGNUP  },
+          { title: 'Login', path: PATH_AFTER_LOGIN  },
           { title: 'Register', path: PATH_AUTH.registerUnprotected },
           { title: 'Reset password', path: PATH_AUTH.resetPassword },
           { title: 'Verify code', path: PATH_AUTH.verify },

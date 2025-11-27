@@ -4,7 +4,7 @@ import { Stack } from '@mui/material';
 import { Logo, Ollcode } from '../../components/logo';
 
 import Image from '../../components/image';
-import Background from '../../assets/slider2.jpg'
+import Background from '../../assets/pexels-asadphoto-2549017.jpg'
 //
 import { StyledRoot, StyledSectionBg, StyledSection, StyledContent } from './styles';
 
@@ -37,7 +37,13 @@ export default function LoginLayout({ children, illustration, title }: Props) {
           visibleByDefault
           alt="auth"
           src={Background}
-          sx={{ maxWidth: '100%', height: '100vh' }}
+          sx={{ 
+            width: '100%', 
+            height: '100vh', 
+            minHeight: '100vh',
+            objectFit: 'cover',
+            objectPosition: 'center'
+          }}
         />
 
         <StyledSectionBg />

@@ -27,7 +27,7 @@ export default function UserTableRow({
   onSelectRow,
   onDeleteRow,
 }: Props) {
-  const { userName, email, phoneNumber, district, status } = row;
+  const { userName, email, phoneNumber, emergencyPhoneNumber, status } = row;
 
   return (
       <TableRow hover selected={selected}>
@@ -42,7 +42,7 @@ export default function UserTableRow({
 
         <TableCell align="left">{email}</TableCell>
         <TableCell align="left">{phoneNumber}</TableCell>
-        <TableCell align="left">{district}</TableCell>
+        <TableCell align="left">{emergencyPhoneNumber}</TableCell>
         <TableCell align="left">
           <Label
             variant="soft"

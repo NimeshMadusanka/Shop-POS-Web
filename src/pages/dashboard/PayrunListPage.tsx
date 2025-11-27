@@ -53,7 +53,6 @@ const TABLE_HEAD = [
 
 export default function PayRunListPage() {
   const {
-    dense,
     page,
     order,
     orderBy,
@@ -63,7 +62,6 @@ export default function PayRunListPage() {
     setSelected,
     onSelectRow,
     onSort,
-    onChangeDense,
     onChangePage,
     onChangeRowsPerPage,
   } = useTable({ defaultOrderBy: 'joinDate', defaultOrder: 'desc' });
@@ -107,7 +105,7 @@ export default function PayRunListPage() {
   });
 
   const dataInPage = dataFiltered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  const denseHeight = dense ? 52 : 72;
+  const denseHeight = 72;
   const isFiltered =
     filterName !== '' || filterRegNo !== '' || filterRole !== 'all' || filterStatus !== 'all';
   const isNotFound =
@@ -242,7 +240,7 @@ export default function PayRunListPage() {
             />
             <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
               <Scrollbar>
-                <Table size={dense ? 'small' : 'medium'} sx={{ minWidth: 800 }}>
+                <Table size="medium" sx={{ minWidth: 800 }}>
                   <TableHeadCustom
                     order={order}
                     orderBy={orderBy}
@@ -278,8 +276,6 @@ export default function PayRunListPage() {
               rowsPerPage={rowsPerPage}
               onPageChange={onChangePage}
               onRowsPerPageChange={onChangeRowsPerPage}
-              dense={dense}
-              onChangeDense={onChangeDense}
             />
           </Card>
         )}

@@ -6,16 +6,21 @@ import { bgGradient } from '../../utils/cssStyles';
 // ----------------------------------------------------------------------
 
 export const StyledRoot = styled('main')(() => ({
-  height: '100%',
+  height: '100vh',
+  minHeight: '100vh',
   display: 'flex',
   position: 'relative',
   alignItems: 'flex-start',
   justifyContent: 'flex-start',
+  overflow: 'hidden',
 }));
 
 export const StyledSection = styled('div')(({ theme }) => ({
   display: 'none',
   position: 'relative',
+  height: '100vh',
+  minHeight: '100vh',
+  overflow: 'hidden',
   [theme.breakpoints.up('md')]: {
     flexGrow: 1,
     display: 'flex',
@@ -41,15 +46,22 @@ export const StyledSectionBg = styled('div')(({ theme }) => ({
 
 export const StyledContent = styled('div')(({ theme }) => ({
   width: 480,
+  maxWidth: '100%',
   margin: 'auto',
   display: 'flex',
   minHeight: '100vh',
   justifyContent: 'center',
-  alignContent:'space-between',
-  padding: theme.spacing(12, 5),
+  alignContent: 'space-between',
+  padding: theme.spacing(8, 3),
+  overflow: 'auto',
+  boxSizing: 'border-box',
   [theme.breakpoints.up('md')]: {
     flexShrink: 0,
-    // padding: theme.spacing(8),
+    padding: theme.spacing(10, 5),
+  },
+  [theme.breakpoints.down('sm')]: {
+    width: '100%',
+    padding: theme.spacing(6, 2),
   },
 }));
 

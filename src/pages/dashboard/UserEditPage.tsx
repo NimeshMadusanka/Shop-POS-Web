@@ -16,9 +16,9 @@ export default function UserEditPage() {
   const { themeStretch } = useSettingsContext();
   const location = useLocation();
 
-  const { _id, userName, email, role, password, phoneNumber, district  } = location.state;
+  const { _id, userName, email, role, password, phoneNumber, emergencyPhoneNumber  } = location.state;
 
-    const userData = {  _id, userName, email, role, password, phoneNumber, district } as any; 
+    const userData = {  _id, userName, email, role, password, phoneNumber, emergencyPhoneNumber } as any; 
 
   return (
     <>

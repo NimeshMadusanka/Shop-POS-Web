@@ -58,7 +58,6 @@ const TABLE_HEAD = [
 // ----------------------------------------------------------------------
 export default function PaymentListPage() {
   const {
-    dense,
     page,
     order,
     orderBy,
@@ -70,7 +69,6 @@ export default function PaymentListPage() {
     onSelectRow,
     //
     onSort,
-    onChangeDense,
     onChangePage,
     onChangeRowsPerPage,
   } = useTable({
@@ -99,7 +97,7 @@ export default function PaymentListPage() {
 
   const dataInPage = dataFiltered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  const denseHeight = dense ? 52 : 72;
+  const denseHeight = 72;
 
   const isFiltered = filterName !== '' || filterRole !== 'all' || filterStatus !== 'all';
 
@@ -185,7 +183,7 @@ export default function PaymentListPage() {
 
             <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
               <Scrollbar>
-                <Table size={dense ? 'small' : 'medium'} sx={{ minWidth: 800 }}>
+                <Table size="medium" sx={{ minWidth: 800 }}>
                   <TableHeadCustom
                     order={order}
                     orderBy={orderBy}
@@ -227,8 +225,6 @@ export default function PaymentListPage() {
               onPageChange={onChangePage}
               onRowsPerPageChange={onChangeRowsPerPage}
               //
-              dense={dense}
-              onChangeDense={onChangeDense}
             />
           </Card>
         )}

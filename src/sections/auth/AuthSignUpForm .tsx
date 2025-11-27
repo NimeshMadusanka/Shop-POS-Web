@@ -13,7 +13,7 @@ import { LoadingButton } from '@mui/lab';
 import { Stack, Alert, InputAdornment, IconButton } from '@mui/material';
 import { useLocation } from 'react-router';
 import Iconify from '../../components/iconify';
-import { createSignupCompanyApi } from 'src/api/CompanyApi';
+// Signup functionality removed
 import { useSnackbar } from '../../components/snackbar';
 import { PATH_AUTH } from '../../routes/paths';
 
@@ -151,12 +151,12 @@ export default function AuthEmployeeSignup() {
 
     
 
-await createSignupCompanyApi(payload, false);
+// Signup functionality removed
+// await createSignupCompanyApi(payload, false);
 
-
-      enqueueSnackbar('Signup successful! Please log in.', { variant: 'success' });
-      navigate(PATH_AUTH.login);
-      reset(defaultValues);
+      enqueueSnackbar('Signup is no longer available.', { variant: 'error' });
+      // navigate(PATH_AUTH.login);
+      // reset(defaultValues);
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Signup failed';
 

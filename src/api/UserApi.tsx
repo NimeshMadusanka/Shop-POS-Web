@@ -5,8 +5,8 @@ type createUser = {
   email: string;
   password: string;
   phoneNumber: string;
+  emergencyPhoneNumber: string;
   role: string;
-  district: string;
   itemSelect: string;
 }
 
@@ -18,6 +18,11 @@ type createUser = {
   const getUserData = async() => {
     const response = await axios.get(`/user/get-hotel-user`);
     return response?.data;
-  }  
+  };
+
+  const loginPinApi = async (email: string, pin: string) => {
+    const response = await axios.post(`/user/login-pin`, { email, pin });
+    return response?.data;
+  };
   
-export {  getUserData, createUserApi  };
+export {  getUserData, createUserApi, loginPinApi  };

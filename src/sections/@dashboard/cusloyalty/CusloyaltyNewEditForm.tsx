@@ -177,12 +177,12 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
                 variant="contained"
                 loading={isSubmitting}
                 sx={{
-                  backgroundColor: '#FF9800',
+                  backgroundColor: '#6B8E5A',
                   fontWeight: 500,
                   letterSpacing: 0,
                   opacity: 1,
                   ':hover': {
-                    backgroundColor: '#FFB74D',
+                    backgroundColor: '#4A5D3F',
                     color: '#ffffff',
                   },
                 }}

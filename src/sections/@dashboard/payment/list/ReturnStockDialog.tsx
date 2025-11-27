@@ -232,9 +232,9 @@ export default function ReturnStockDialog({ open, onClose, paymentId, items, onS
           onClick={handleConfirm}
           disabled={returnItems.length === 0}
           sx={{
-            backgroundColor: '#FF9800',
+            backgroundColor: 'primary.main',
             '&:hover': {
-              backgroundColor: '#F57C00',
+              backgroundColor: 'primary.dark',
             },
           }}
         >

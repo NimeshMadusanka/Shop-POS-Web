@@ -29,6 +29,7 @@ export type JWTContextType = {
   accessToken: string;
   user: AuthUserType;
   login: (email: string, password: string) => Promise<void>;
+  loginPin: (email: string, pin: string) => Promise<void>;
   register: (
     email: string,
     password: string,

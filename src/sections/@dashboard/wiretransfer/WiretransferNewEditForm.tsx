@@ -204,6 +204,20 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
         itemName: s.service.itemName,
       }));
 
+      // Format date to string
+      let formattedDate = '';
+      if (date) {
+        if (date instanceof Date) {
+          formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        } else if (typeof date === 'string') {
+          formattedDate = date;
+        } else {
+          formattedDate = new Date().toISOString().split('T')[0]; // Default to today
+        }
+      } else {
+        formattedDate = new Date().toISOString().split('T')[0]; // Default to today if no date
+      }
+
       const payload = {
         customerName,
         items: formattedServices,
@@ -214,8 +228,7 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
         empName,
         newoffPercentage: addLoyalty ? newoffPercentage || 0 : 0,
         billDiscountPercentage: billDiscountPercentage || 0,
-        date,
-
+        date: formattedDate,
         companyID,
       };
 
@@ -321,9 +334,9 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
         append({ service: { _id: '', itemName: '', itemPrice: '' }, quantity: 1 })
       }
       sx={{
-        backgroundColor: '#FF9800',
+        backgroundColor: 'primary.main',
         color: '#ffffff',
-        '&:hover': { backgroundColor: '#F57C00' },
+        '&:hover': { backgroundColor: 'primary.dark' },
         width: 36,
         height: 36,
       }}
@@ -369,9 +382,9 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
               append({ service: { _id: '', itemName: '', itemPrice: '' }, quantity: 1 })
             }
             sx={{
-              backgroundColor: '#FF9800',
+              backgroundColor: 'primary.main',
               color: '#ffffff',
-              '&:hover': { backgroundColor: '#F57C00' },
+              '&:hover': { backgroundColor: 'primary.dark' },
               width: 36,
               height: 36,
             }}
@@ -506,12 +519,12 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
                 variant="contained"
                 loading={isSubmitting}
                 sx={{
-                  backgroundColor: '#FF9800',
+                  backgroundColor: 'primary.main',
                   fontWeight: 500,
                   letterSpacing: 0,
                   opacity: 1,
                   ':hover': {
-                    backgroundColor: '#FFB74D',
+                    backgroundColor: 'primary.light',
                     color: '#ffffff',
                   },
                 }}

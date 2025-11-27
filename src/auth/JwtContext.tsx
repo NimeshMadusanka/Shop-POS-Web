@@ -194,6 +194,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
   });
 }, []);
 
+  // PIN LOGIN for cashiers
+  const loginPin = useCallback(async (email: string, pin: string) => {
+    const response = await axios.post('/user/login-pin', { email, pin });
+
+    const { accessToken } = response.data;
+
+    if (accessToken) {
+      localStorage.setItem('accessToken', accessToken);
+      axios.defaults.headers.Authorization = `Bearer ${accessToken}`;
+    }
+
+    // Fetch full user data from client-validate-user
+    const userResponse = await axios.get('user/client-validate-user');
+    const user = userResponse.data;
+
+    localStorage.setItem('userdetails', JSON.stringify(user));
+    localStorage.setItem('userId', user._id);
+
+    dispatch({
+      type: Types.LOGIN,
+      payload: { user },
+    });
+  }, []);
+
   const signUp = useCallback(
     async (
       email: string,
@@ -334,6 +358,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       accessToken: state.accessToken,
       method: 'jwt',
       login,
+      loginPin,
       loginWithGoogle: () => {},
       loginWithGithub: () => {},
       loginWithTwitter: () => {},
@@ -350,6 +375,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       state.user,
       state.accessToken,
       login,
+      loginPin,
       signUp,
       Signup,
       logout,

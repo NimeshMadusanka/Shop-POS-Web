@@ -43,20 +43,18 @@ interface StockActivity {
   itemId: string;
   itemName: string;
   amount: number;
-  operationType: 'Stock-in' | 'Stock-out' | 'Returned-Stock-in';
+  operationType: 'Stock-in' | 'Stock-out' | 'refunded-stock-in' | 'Returning-stock-out' | 'missing';
   operationDate: string;
 }
 
 export default function AnalyticsPage() {
   const {
-    dense,
     page,
     order,
     orderBy,
     rowsPerPage,
     setPage,
     onSort,
-    onChangeDense,
     onChangePage,
     onChangeRowsPerPage,
   } = useTable({
@@ -87,7 +85,7 @@ export default function AnalyticsPage() {
     filterDateTo,
   });
 
-  const denseHeight = dense ? 52 : 72;
+  const denseHeight = 72;
 
   const isFiltered = filterName !== '' || filterType !== 'all' || filterItem !== 'all' || filterDateFrom !== '' || filterDateTo !== '';
 
@@ -222,11 +220,15 @@ export default function AnalyticsPage() {
     // Summary
     const stockInCount = dataFiltered.filter((a) => a.operationType === 'Stock-in').length;
     const stockOutCount = dataFiltered.filter((a) => a.operationType === 'Stock-out').length;
+    const missingCount = dataFiltered.filter((a) => a.operationType === 'missing').length;
     const totalStockIn = dataFiltered
       .filter((a) => a.operationType === 'Stock-in')
       .reduce((sum, a) => sum + a.amount, 0);
     const totalStockOut = dataFiltered
       .filter((a) => a.operationType === 'Stock-out')
+      .reduce((sum, a) => sum + a.amount, 0);
+    const totalMissing = dataFiltered
+      .filter((a) => a.operationType === 'missing')
       .reduce((sum, a) => sum + a.amount, 0);
 
     const finalY = (doc as any).lastAutoTable?.finalY || currentY + 50;
@@ -241,9 +243,11 @@ export default function AnalyticsPage() {
     doc.setFont('helvetica', 'normal');
     doc.text(`Total Stock-in Operations: ${stockInCount}`, marginLeft, currentY);
     doc.text(`Total Stock-out Operations: ${stockOutCount}`, marginLeft + 80, currentY);
+    doc.text(`Total Missing Operations: ${missingCount}`, marginLeft + 160, currentY);
     currentY += 6;
     doc.text(`Total Stock-in Amount: ${totalStockIn}`, marginLeft, currentY);
     doc.text(`Total Stock-out Amount: ${totalStockOut}`, marginLeft + 80, currentY);
+    doc.text(`Total Missing Amount: ${totalMissing}`, marginLeft + 160, currentY);
 
     // Generate filename based on filters
     let filename = `item_activity_analytics_${new Date().toISOString().split('T')[0]}`;
@@ -281,9 +285,9 @@ export default function AnalyticsPage() {
                 onClick={loadData}
                 disabled={dataLoad}
                 sx={{
-                  borderColor: '#FF9800',
-                  color: '#FF9800',
-                  '&:hover': { borderColor: '#F57C00', backgroundColor: '#fff3e0' },
+                  borderColor: '#8ed973',
+                  color: '#8ed973',
+                  '&:hover': { borderColor: '#12501a', backgroundColor: '#daf2d0' },
                 }}
               >
                 Refresh
@@ -293,8 +297,8 @@ export default function AnalyticsPage() {
                 startIcon={<Iconify icon="eva:download-fill" />}
                 onClick={handleDownloadPDF}
                 sx={{
-                  backgroundColor: '#FF9800',
-                  '&:hover': { backgroundColor: '#F57C00' },
+                  backgroundColor: '#6B8E5A',
+                  '&:hover': { backgroundColor: '#4A5D3F' },
                 }}
               >
                 Download PDF
@@ -316,7 +320,7 @@ export default function AnalyticsPage() {
               filterItem={filterItem}
               filterDateFrom={filterDateFrom}
               filterDateTo={filterDateTo}
-              optionsType={['all', 'Stock-in', 'Stock-out', 'Returned-Stock-in']}
+              optionsType={['all', 'Stock-in', 'Stock-out', 'refunded-stock-in', 'Returning-stock-out', 'missing']}
               optionsItem={['all', ...uniqueItems]}
               onFilterName={handleFilterName}
               onFilterType={handleFilterType}
@@ -334,7 +338,7 @@ export default function AnalyticsPage() {
 
             <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
               <Scrollbar>
-                <Table size={dense ? 'small' : 'medium'} sx={{ minWidth: 800 }}>
+                <Table size="medium" sx={{ minWidth: 800 }}>
                   <TableHeadCustom
                     order={order}
                     orderBy={orderBy}
@@ -370,8 +374,6 @@ export default function AnalyticsPage() {
               rowsPerPage={rowsPerPage}
               onPageChange={onChangePage}
               onRowsPerPageChange={onChangeRowsPerPage}
-              dense={dense}
-              onChangeDense={onChangeDense}
             />
           </Card>
         )}

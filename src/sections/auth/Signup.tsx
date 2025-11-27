@@ -56,6 +56,8 @@
 // import { Link as RouterLink } from 'react-router-dom';
 // @mui
 import { Stack, Typography } from '@mui/material';
+import Image from '../../components/image';
+import EssentialsLogo from '../../assets/ESSENTIALS.png';
 
 // layouts
 import SignupLayout from '../../layouts/signup';
@@ -70,6 +72,18 @@ export default function Signup() {
   return (
     <SignupLayout>
       <Stack spacing={2} sx={{ mb: 5, position: 'relative' }}>
+        <Image
+          disabledEffect
+          visibleByDefault
+          alt="auth"
+          src={EssentialsLogo}
+          sx={{
+            width: { lg: 200, md: 180, sm: 160, xs: 140 },
+            mb: { lg: 4, md: 3, sm: 2, xs: 2 },
+            height: 'auto',
+            alignSelf: 'center',
+          }}
+        />
         <Typography variant="h4" sx={{ color: '#333333' }}>
           Sign Up to The POS System
         </Typography>

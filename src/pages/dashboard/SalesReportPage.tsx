@@ -14,6 +14,7 @@ import {
   InputAdornment,
   TableRow,
   TableCell,
+  Typography,
 } from '@mui/material';
 import { getPaymentData } from 'src/api/PaymentApi';
 import jsPDF from 'jspdf';
@@ -42,26 +43,25 @@ import Iconify from '../../components/iconify';
 // ----------------------------------------------------------------------
 
 const TABLE_HEAD = [
-  { id: 'customerName', label: 'Customer Name', align: 'left' },
+  { id: 'invoiceNumber', label: 'Invoice No', align: 'left' },
   { id: 'date', label: 'Date', align: 'left' },
   { id: 'grandTotal', label: 'Grand Total', align: 'left' },
   { id: 'cashPaid', label: 'Cash Paid', align: 'left' },
   { id: 'wirePaid', label: 'Wire Paid', align: 'left' },
   { id: 'paymentMethod', label: 'Payment Method', align: 'left' },
+  { id: 'refundedBy', label: 'Refunded By', align: 'left' },
 ];
 
 // ----------------------------------------------------------------------
 
 export default function SalesReportPage() {
   const {
-    dense,
     page,
     order,
     orderBy,
     rowsPerPage,
     setPage,
     onSort,
-    onChangeDense,
     onChangePage,
     onChangeRowsPerPage,
   } = useTable({
@@ -85,7 +85,7 @@ export default function SalesReportPage() {
     filterDateTo,
   });
 
-  const denseHeight = dense ? 52 : 72;
+  const denseHeight = 72;
 
   const isFiltered = filterName !== '' || filterDateFrom !== '' || filterDateTo !== '';
 
@@ -184,32 +184,49 @@ export default function SalesReportPage() {
     // Table
     autoTable(doc, {
       startY: currentY,
-      head: [['Customer Name', 'Date', 'Grand Total', 'Cash Paid', 'Wire Paid', 'Payment Method']],
+      head: [['Invoice No', 'Date', 'Grand Total', 'Cash Paid', 'Wire Paid', 'Payment Method']],
       body: dataFiltered.map((payment) => {
         const paymentMethods: string[] = [];
+        const isRefunded = payment.refunded === true;
         const cashPaidNum = Number(payment.cashPaid) || 0;
         const wirePaidNum = Number(payment.wirePaid) || 0;
-        if (cashPaidNum > 0) {
-          paymentMethods.push(`C:${cashPaidNum.toFixed(2)}`);
+        const cardPaidNum = Number(payment.cardPaid) || 0;
+        
+        // Show payment method if amount is not zero (handles both positive and negative for refunds)
+        if (cashPaidNum !== 0) {
+          const displayAmount = isRefunded ? -cashPaidNum : cashPaidNum;
+          paymentMethods.push(`C:${displayAmount.toFixed(2)}`);
         }
-        if (wirePaidNum > 0) {
-          paymentMethods.push(`W:${wirePaidNum.toFixed(2)}`);
+        if (wirePaidNum !== 0) {
+          const displayAmount = isRefunded ? -wirePaidNum : wirePaidNum;
+          paymentMethods.push(`W:${displayAmount.toFixed(2)}`);
+        }
+        if (cardPaidNum !== 0) {
+          const displayAmount = isRefunded ? -cardPaidNum : cardPaidNum;
+          paymentMethods.push(`Card:${displayAmount.toFixed(2)}`);
         }
         const paymentMethodStr = paymentMethods.length > 0 ? paymentMethods.join(', ') : 'N/A';
 
-        // Truncate long customer names only
-        const truncateText = (text: string, maxLength: number) => {
-          if (text.length <= maxLength) return text;
-          return text.substring(0, maxLength - 3) + '...';
-        };
+        const grandTotalValue = isRefunded 
+          ? -(Number(payment.grandTotal) || 0) 
+          : (Number(payment.grandTotal) || 0);
+        const cashPaidDisplay = isRefunded 
+          ? -(cashPaidNum || 0) 
+          : (cashPaidNum || 0);
+        const wirePaidDisplay = isRefunded 
+          ? -(wirePaidNum || 0) 
+          : (wirePaidNum || 0);
+        const invoiceNumberDisplay = isRefunded 
+          ? `${(payment as any).invoiceNumber || 'N/A'} (REFUNDED)`
+          : ((payment as any).invoiceNumber || 'N/A');
 
         return [
-          truncateText(payment.customerName || 'N/A', 18),
+          invoiceNumberDisplay,
           payment.date || 'N/A',
-          payment.grandTotal ? Number(payment.grandTotal).toFixed(2) : '0.00',
-          cashPaidNum > 0 ? cashPaidNum.toFixed(2) : '0.00',
-          wirePaidNum > 0 ? wirePaidNum.toFixed(2) : '0.00',
-          paymentMethodStr, // Don't truncate payment method - use shorter format instead
+          grandTotalValue.toFixed(2),
+          cashPaidDisplay !== 0 ? cashPaidDisplay.toFixed(2) : '0.00',
+          wirePaidDisplay !== 0 ? wirePaidDisplay.toFixed(2) : '0.00',
+          paymentMethodStr,
         ];
       }),
       theme: 'grid',
@@ -217,12 +234,12 @@ export default function SalesReportPage() {
       margin: { left: marginLeft, right: 20 },
       styles: { fontSize: 8, cellPadding: 2 },
       columnStyles: {
-        0: { cellWidth: 32 }, // Customer Name
+        0: { cellWidth: 32 }, // Invoice No
         1: { cellWidth: 25 }, // Date
         2: { cellWidth: 22 }, // Grand Total
         3: { cellWidth: 20 }, // Cash Paid
         4: { cellWidth: 20 }, // Wire Paid
-        5: { cellWidth: 31 }, // Payment Method (increased)
+        5: { cellWidth: 31 }, // Payment Method
       },
     });
 
@@ -237,17 +254,34 @@ export default function SalesReportPage() {
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    const totalSales = dataFiltered.reduce((sum, p) => sum + (Number(p.grandTotal) || 0), 0);
-    const totalCash = dataFiltered.reduce((sum, p) => sum + (Number(p.cashPaid) || 0), 0);
-    const totalWire = dataFiltered.reduce((sum, p) => sum + (Number(p.wirePaid) || 0), 0);
+    const totalSales = dataFiltered.reduce((sum, p) => {
+      const isRefunded = p.refunded === true;
+      const amount = Number(p.grandTotal) || 0;
+      return sum + (isRefunded ? -amount : amount);
+    }, 0);
+    const totalCash = dataFiltered.reduce((sum, p) => {
+      const isRefunded = p.refunded === true;
+      const amount = Number(p.cashPaid) || 0;
+      return sum + (isRefunded ? -amount : amount);
+    }, 0);
+    const totalWire = dataFiltered.reduce((sum, p) => {
+      const isRefunded = p.refunded === true;
+      const amount = Number(p.wirePaid) || 0;
+      return sum + (isRefunded ? -amount : amount);
+    }, 0);
     const totalTransactions = dataFiltered.length;
+    const refundedCount = dataFiltered.filter((p) => p.refunded === true).length;
 
     doc.text(`Total Transactions: ${totalTransactions}`, marginLeft, currentY);
     currentY += 6;
-    doc.text(`Total Sales: ${totalSales.toFixed(2)}`, marginLeft, currentY);
+    if (refundedCount > 0) {
+      doc.text(`Refunded Transactions: ${refundedCount}`, marginLeft, currentY);
+      currentY += 6;
+    }
+    doc.text(`Total Sales (Net): ${totalSales.toFixed(2)}`, marginLeft, currentY);
     currentY += 6;
-    doc.text(`Total Cash Paid: ${totalCash.toFixed(2)}`, marginLeft, currentY);
-    doc.text(`Total Wire Paid: ${totalWire.toFixed(2)}`, marginLeft + 80, currentY);
+    doc.text(`Total Cash Paid (Net): ${totalCash.toFixed(2)}`, marginLeft, currentY);
+    doc.text(`Total Wire Paid (Net): ${totalWire.toFixed(2)}`, marginLeft + 80, currentY);
 
     // Generate filename
     let filename = `sales_report_${new Date().toISOString().split('T')[0]}`;
@@ -285,9 +319,9 @@ export default function SalesReportPage() {
                 onClick={loadData}
                 disabled={dataLoad}
                 sx={{
-                  borderColor: '#FF9800',
-                  color: '#FF9800',
-                  '&:hover': { borderColor: '#F57C00', backgroundColor: '#fff3e0' },
+                  borderColor: '#8ed973',
+                  color: '#8ed973',
+                  '&:hover': { borderColor: '#12501a', backgroundColor: '#daf2d0' },
                 }}
               >
                 Refresh
@@ -297,8 +331,8 @@ export default function SalesReportPage() {
                 startIcon={<Iconify icon="eva:download-fill" />}
                 onClick={handleDownloadPDF}
                 sx={{
-                  backgroundColor: '#FF9800',
-                  '&:hover': { backgroundColor: '#F57C00' },
+                  backgroundColor: '#6B8E5A',
+                  '&:hover': { backgroundColor: '#4A5D3F' },
                 }}
               >
                 Export PDF
@@ -327,7 +361,7 @@ export default function SalesReportPage() {
                 fullWidth
                 value={filterName}
                 onChange={handleFilterName}
-                placeholder="Search by customer name..."
+                placeholder="Search by invoice number..."
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -385,7 +419,7 @@ export default function SalesReportPage() {
 
             <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
               <Scrollbar>
-                <Table size={dense ? 'small' : 'medium'} sx={{ minWidth: 800 }}>
+                <Table size="medium" sx={{ minWidth: 800 }}>
                   <TableHeadCustom
                     order={order}
                     orderBy={orderBy}
@@ -399,24 +433,76 @@ export default function SalesReportPage() {
                       .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                       .map((row) => {
                         const paymentMethods: string[] = [];
+                        const isRefunded = row.refunded === true;
                         const cashPaidNum = Number(row.cashPaid) || 0;
                         const wirePaidNum = Number(row.wirePaid) || 0;
-                        if (cashPaidNum > 0) {
-                          paymentMethods.push(`Cash: ${cashPaidNum.toFixed(2)}`);
+                        const cardPaidNum = Number(row.cardPaid) || 0;
+                        
+                        // Show payment method if amount is not zero (handles both positive and negative for refunds)
+                        if (cashPaidNum !== 0) {
+                          const displayAmount = isRefunded ? -cashPaidNum : cashPaidNum;
+                          paymentMethods.push(`Cash: ${displayAmount.toFixed(2)}`);
                         }
-                        if (wirePaidNum > 0) {
-                          paymentMethods.push(`Wire: ${wirePaidNum.toFixed(2)}`);
+                        if (wirePaidNum !== 0) {
+                          const displayAmount = isRefunded ? -wirePaidNum : wirePaidNum;
+                          paymentMethods.push(`Wire: ${displayAmount.toFixed(2)}`);
+                        }
+                        if (cardPaidNum !== 0) {
+                          const displayAmount = isRefunded ? -cardPaidNum : cardPaidNum;
+                          paymentMethods.push(`Card: ${displayAmount.toFixed(2)}`);
                         }
                         const paymentMethodStr = paymentMethods.length > 0 ? paymentMethods.join(', ') : 'N/A';
 
+                        const grandTotalValue = isRefunded 
+                          ? -(Number(row.grandTotal) || 0) 
+                          : (Number(row.grandTotal) || 0);
+                        const cashPaidDisplay = isRefunded 
+                          ? -(cashPaidNum || 0) 
+                          : (cashPaidNum || 0);
+                        const wirePaidDisplay = isRefunded 
+                          ? -(wirePaidNum || 0) 
+                          : (wirePaidNum || 0);
+
                         return (
-                          <TableRow hover key={row._id}>
-                            <TableCell>{row.customerName || 'N/A'}</TableCell>
+                          <TableRow 
+                            hover 
+                            key={row._id}
+                            sx={{
+                              backgroundColor: isRefunded ? 'rgba(255, 0, 0, 0.05)' : 'inherit',
+                            }}
+                          >
+                            <TableCell>
+                              {(row as any).invoiceNumber || 'N/A'}
+                              {isRefunded && (
+                                <span style={{ color: 'red', marginLeft: '8px', fontWeight: 'bold' }}>
+                                  (REFUNDED)
+                                </span>
+                              )}
+                            </TableCell>
                             <TableCell>{row.date || 'N/A'}</TableCell>
-                            <TableCell>{row.grandTotal ? Number(row.grandTotal).toFixed(2) : '0.00'}</TableCell>
-                            <TableCell>{cashPaidNum > 0 ? cashPaidNum.toFixed(2) : '0.00'}</TableCell>
-                            <TableCell>{wirePaidNum > 0 ? wirePaidNum.toFixed(2) : '0.00'}</TableCell>
+                            <TableCell sx={{ color: isRefunded ? 'error.main' : 'inherit' }}>
+                              {grandTotalValue.toFixed(2)}
+                            </TableCell>
+                            <TableCell sx={{ color: isRefunded ? 'error.main' : 'inherit' }}>
+                              {cashPaidDisplay !== 0 ? cashPaidDisplay.toFixed(2) : '0.00'}
+                            </TableCell>
+                            <TableCell sx={{ color: isRefunded ? 'error.main' : 'inherit' }}>
+                              {wirePaidDisplay !== 0 ? wirePaidDisplay.toFixed(2) : '0.00'}
+                            </TableCell>
                             <TableCell>{paymentMethodStr}</TableCell>
+                            <TableCell>
+                              {isRefunded && row.refundedBy ? (
+                                <Typography variant="body2">
+                                  {row.refundedBy.firstName || row.refundedBy.lastName
+                                    ? `${row.refundedBy.firstName || ''} ${row.refundedBy.lastName || ''}`.trim()
+                                    : 'N/A'}
+                                </Typography>
+                              ) : (
+                                <Typography variant="body2" color="text.secondary">
+                                  -
+                                </Typography>
+                              )}
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -438,8 +524,6 @@ export default function SalesReportPage() {
               rowsPerPage={rowsPerPage}
               onPageChange={onChangePage}
               onRowsPerPageChange={onChangeRowsPerPage}
-              dense={dense}
-              onChangeDense={onChangeDense}
             />
           </Card>
         )}
@@ -478,8 +562,8 @@ function applyFilter({
     filteredData = filteredData.filter(
       (payment) =>
         payment &&
-        payment.customerName &&
-        payment.customerName.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
+        (payment as any).invoiceNumber &&
+        (payment as any).invoiceNumber.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
     );
   }
 

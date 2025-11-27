@@ -2,6 +2,8 @@ import * as Yup from 'yup';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { createItemApi, updateItemApi } from 'src/api/ItemApi';
 import { getCategoryData } from 'src/api/CategoryApi';
+import { getBrandData } from 'src/api/BrandApi';
+import { getShopData } from 'src/api/ShopApi';
 // form
 import { useForm } from 'react-hook-form';
 
@@ -27,12 +29,31 @@ type FormValuesProps = {
   itemPrice: string;
   itemDuration: string;
   stockQuantity: string;
+  brandId: string;
+  shopId: string;
   id: string;
 };
 
 interface Category {
   _id: string;
   catgName: string;
+}
+
+interface Brand {
+  _id: string;
+  brandName: string;
+  description?: string;
+  providerId?: string;
+  providerName?: string;
+}
+
+interface Shop {
+  _id: string;
+  shopName: string;
+  ownerEmail: string;
+  contactPhone?: string;
+  address?: string;
+  companyID: string;
 }
 type Props = {
   isEdit?: boolean;
@@ -46,11 +67,15 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const [categoryData, setCategoryData] = useState<Category[]>([]);
+  const [brandData, setBrandData] = useState<Brand[]>([]);
+  const [shopData, setShopData] = useState<Shop[]>([]);
   const { user } = useAuthContext();
+  const companyID = user?.companyID;
 
   const NewUserSchema = Yup.object().shape({
     itemName: Yup.string().required('Product Name is required'),
     itemCategory: Yup.string().required('Product Category is required'),
+    brandId: Yup.string().required('Brand is required'),
     itemPrice: Yup.number().required('Price is required').typeError('Price must be a number'),
     itemDuration: Yup.string()
       .required('Unit is required')
@@ -64,6 +89,8 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
     () => ({
       itemName: userData?.itemName || '',
       itemCategory: userData?.itemCategory || '',
+      brandId: (userData as any)?.brandId || '',
+      shopId: (userData as any)?.shopId || '',
       itemPrice: userData?.itemPrice || '',
       itemDuration: userData?.itemDuration || '',
       stockQuantity: userData?.stockQuantity?.toString() || '0',
@@ -95,22 +122,35 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
   }, [isEdit, userData]);
 
   const loadData = useCallback(async () => {
-    const data = await getCategoryData();
-
-    setCategoryData(data);
-  }, []);
+    if (!companyID) return;
+    try {
+      const [categories, brands, shops] = await Promise.all([
+        getCategoryData(),
+        getBrandData(companyID),
+        getShopData(companyID),
+      ]);
+      setCategoryData(categories);
+      setBrandData(brands);
+      setShopData(shops);
+    } catch (error) {
+      enqueueSnackbar('Error loading data', { variant: 'error' });
+    }
+  }, [companyID, enqueueSnackbar]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
   const onSubmit = async (data: FormValuesProps) => {
-    const companyID = user?.companyID;
+    if (!companyID) {
+      enqueueSnackbar('Company ID is required', { variant: 'error' });
+      return;
+    }
     try {
       // Destructure the properties from the data object
-      const { itemName, itemCategory, itemPrice, itemDuration, stockQuantity, id } = data;
+      const { itemName, itemCategory, itemPrice, itemDuration, stockQuantity, brandId, shopId, id } = data;
 
-      const payload = {
+      const payload: any = {
         itemName,
         itemCategory,
         itemPrice,
@@ -118,6 +158,8 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
         itemType: 'service',
         stockQuantity: stockQuantity ? Number(stockQuantity) : 0,
         companyID,
+        brandId: brandId || null,
+        shopId: shopId || null,
       };
 
       if (isEdit) {
@@ -154,6 +196,44 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
               <Autocomplete
                 fullWidth
                 autoHighlight
+                options={brandData}
+                getOptionLabel={(option) => option?.brandName || ''}
+                isOptionEqualToValue={(option, value) => option._id === value._id}
+                value={brandData.find((b) => b._id === methods.watch('brandId')) || null}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Brand *"
+                    inputProps={{
+                      ...params.inputProps,
+                      autoComplete: 'new-password',
+                    }}
+                  />
+                )}
+                onChange={(event, newValue) => {
+                  setValue('brandId', newValue?._id || '');
+                }}
+              />
+              {(() => {
+                const selectedBrand = brandData.find((b) => b._id === methods.watch('brandId'));
+                if (selectedBrand?.providerName) {
+                  return (
+                    <TextField
+                      fullWidth
+                      label="Provider"
+                      value={selectedBrand.providerName}
+                      disabled
+                      helperText="Provider for selected brand"
+                      sx={{ gridColumn: { xs: '1', sm: 'span 2' } }}
+                    />
+                  );
+                }
+                return null;
+              })()}
+
+              <Autocomplete
+                fullWidth
+                autoHighlight
                 options={categoryData}
                 getOptionLabel={(option) => option?.catgName || ''}
                 isOptionEqualToValue={(option, value) => option._id === value._id}
@@ -183,6 +263,28 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
                   </MenuItem>
                 ))}
               </RHFSelect>
+              <Autocomplete
+                fullWidth
+                autoHighlight
+                options={shopData}
+                getOptionLabel={(option) => option?.shopName || ''}
+                isOptionEqualToValue={(option, value) => option._id === value._id}
+                value={shopData.find((s) => s._id === methods.watch('shopId')) || null}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Shop (Optional)"
+                    helperText="Leave empty for company-wide products"
+                    inputProps={{
+                      ...params.inputProps,
+                      autoComplete: 'new-password',
+                    }}
+                  />
+                )}
+                onChange={(event, newValue) => {
+                  setValue('shopId', newValue?._id || '');
+                }}
+              />
               <RHFTextField 
                 name="stockQuantity" 
                 label="Stock Quantity" 
@@ -196,15 +298,11 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
                 type="submit"
                 variant="contained"
                 loading={isSubmitting}
+                color="primary"
                 sx={{
-                  backgroundColor: '#FF9800',
                   fontWeight: 500,
                   letterSpacing: 0,
                   opacity: 1,
-                  ':hover': {
-                    backgroundColor: '#FFB74D',
-                    color: '#ffffff',
-                  },
                 }}
               >
                 {!isEdit ? 'Create Product' : 'Save Changes'}

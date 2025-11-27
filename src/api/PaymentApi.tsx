@@ -1,10 +1,21 @@
 import axios from 'src/utils/axios';
 
 type CreatePayment = {
- customerName?: string; 
+ customerName?: string;
+ customerPhone?: string;
+ customerPhoneNumber?: string; // Frontend uses this name
   // services: string;
    cashPaid?: number;
-  wirePaid?: number;
+  creditPaid?: number;
+  debitPaid?: number;
+  wirePaid?: number; // Deprecated - kept for backward compatibility
+  invoiceNumber?: string; // Generated on backend, but can be provided
+  items?: any[];
+  addLoyalty?: boolean;
+  newoffPercentage?: number;
+  billDiscountPercentage?: number;
+  date?: string;
+  companyID?: string;
 };
 
 const createPaymentApi = async (payload: CreatePayment, boolValue: boolean) => {
@@ -45,4 +56,20 @@ const returnStockApi = async (paymentId: string, returnItems: ReturnItem[], comp
   return response?.data;
 };
 
-export { getPaymentData, createPaymentApi, updatePaymentApi, returnStockApi };
+const refundPaymentApi = async (paymentId: string, companyID: string) => {
+  const response = await axios.post(`/payment/${paymentId}/refund`, {
+    companyID,
+  });
+  return response?.data;
+};
+
+const getPaymentByInvoiceNumber = async (invoiceNumber: string, companyID?: string) => {
+  const params: any = {};
+  if (companyID) {
+    params.companyID = companyID;
+  }
+  const response = await axios.get(`/payment/invoice/${invoiceNumber}`, { params });
+  return response?.data;
+};
+
+export { getPaymentData, createPaymentApi, updatePaymentApi, returnStockApi, refundPaymentApi, getPaymentByInvoiceNumber };

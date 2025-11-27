@@ -174,10 +174,14 @@ apitTaxmonth:  string;
 };
 export type NewPaymentCreate = {
   _id: string;
- customerName: string;
+ customerName?: string;
  customerPhoneNumber?: string; // Optional phone number
- cashPaid?: string;
- wirePaid?: string;
+ invoiceNumber?: string;
+ cashPaid?: string | number;
+ wirePaid?: string | number;
+ creditPaid?: string | number;
+ debitPaid?: string | number;
+ cardPaid?: string;
 services?: string;
  grandTotal: number;
  items:PaymentItem[];
@@ -190,6 +194,14 @@ discount: number;
  billDiscountPercentage?: number;
  billDiscountAmount?: number;
  total?: number;
+  refunded?: boolean;
+  refundedAt?: string;
+  refundedBy?: {
+    userId?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
 };
 
 export type StockActivity = {
@@ -197,7 +209,7 @@ export type StockActivity = {
   itemId: string;
   itemName: string;
   amount: number;
-  operationType: 'Stock-in' | 'Stock-out' | 'Returned-Stock-in';
+  operationType: 'Stock-in' | 'Stock-out' | 'refunded-stock-in' | 'Returning-stock-out' | 'missing';
   operationDate: string;
   paymentId?: string | null;
 };
@@ -208,6 +220,8 @@ export type PaymentItem = {
   itemName: string;
   quantity: number;
   itemPrice: number;
+  brandId?: string;
+  brandName?: string;
 };
 
 
@@ -340,7 +354,7 @@ export type NewUserCreate = {
   role: string;
   password: string;
   phoneNumber: string;
-  district: string;
+  emergencyPhoneNumber: string;
   status: string;
 };
 

@@ -2,6 +2,8 @@ import { Navigate, useRoutes } from 'react-router-dom';
 // auth
 import AuthGuard from '../auth/AuthGuard';
 import GuestGuard from '../auth/GuestGuard';
+// components
+import RoleBasedRedirect from '../components/role-based-redirect/RoleBasedRedirect';
 // layouts
 // import MainLayout from '../layouts/main';
 import SimpleLayout from '../layouts/simple';
@@ -9,7 +11,6 @@ import CompactLayout from '../layouts/compact';
 import DashboardLayout from '../layouts/dashboard';
 // config
 import { PATH_AFTER_LOGIN } from '../config-global';
-import { PATH_AFTER_SIGNUP } from '../config-global';
 //
 import {
   // Auth
@@ -133,8 +134,10 @@ import {
   PaymentCreatePage,
   PaymentListPage,
   PaymentEditPage,
+  CashierPage,
   AnalyticsPage,
   SalesReportPage,
+  EmailReportPage,
   CardViewPage,
   WiretransferCreatePage,
   CusloyaltyCreatePage,
@@ -144,7 +147,16 @@ import {
   // AppointmentListPage,
   // PayRunListPage,
   // SalaryListPage,
-  SignUpPage,
+  BrandListPage,
+  BrandCreatePage,
+  BrandEditPage,
+  ProviderListPage,
+  ProviderCreatePage,
+  ProviderEditPage,
+  ShopListPage,
+  ShopCreatePage,
+  ShopEditPage,
+
 } from './elements';
 
 // ----------------------------------------------------------------------
@@ -162,15 +174,7 @@ export default function Router() {
               <LoginPage />
             </GuestGuard>
           ),
-          children: [{ element: <Navigate to={PATH_AFTER_SIGNUP} replace />, index: true }],
-        },
-        {
-          path: 'sign-up',
-          element: (
-            <GuestGuard>
-              <SignUpPage />
-            </GuestGuard>
-          ),
+          children: [{ element: <Navigate to={PATH_AFTER_LOGIN} replace />, index: true }],
         },
         { path: 'login-unprotected', element: <LoginPage /> },
         { path: 'forgot-password', element: <ForgotPasswordForm /> },
@@ -187,7 +191,7 @@ export default function Router() {
         </AuthGuard>
       ),
       children: [
-        { element: <Navigate to={PATH_AFTER_LOGIN} replace />, index: true },
+        { element: <RoleBasedRedirect />, index: true },
         { path: 'app', element: <GeneralAppPage /> },
         { path: 'ecommerce', element: <GeneralEcommercePage /> },
         { path: 'analytics', element: <GeneralAnalyticsPage /> },
@@ -232,6 +236,30 @@ export default function Router() {
             { path: 'new', element: <ItemCreatePage /> },
             { path: 'list', element: <ItemListPage /> },
             { path: ':name/edit', element: <ItemEditPage /> },
+          ],
+        },
+        {
+          path: 'brand',
+          children: [
+            { path: 'new', element: <BrandCreatePage /> },
+            { path: 'list', element: <BrandListPage /> },
+            { path: ':name/edit', element: <BrandEditPage /> },
+          ],
+        },
+        {
+          path: 'provider',
+          children: [
+            { path: 'new', element: <ProviderCreatePage /> },
+            { path: 'list', element: <ProviderListPage /> },
+            { path: ':name/edit', element: <ProviderEditPage /> },
+          ],
+        },
+        {
+          path: 'shop',
+          children: [
+            { path: 'new', element: <ShopCreatePage /> },
+            { path: 'list', element: <ShopListPage /> },
+            { path: ':name/edit', element: <ShopEditPage /> },
           ],
         },
 
@@ -296,10 +324,14 @@ export default function Router() {
           children: [
             { path: 'new', element: <PaymentCreatePage /> },
             { path: 'list', element: <PaymentListPage /> },
-             { path: 'listnew', element: <CardViewPage /> },
-               { path: 'wiretransfer', element: <WiretransferCreatePage /> },
+            { path: 'listnew', element: <CardViewPage /> },
+            { path: 'wiretransfer', element: <WiretransferCreatePage /> },
             { path: ':name/edit', element: <PaymentEditPage /> },
           ],
+        },
+        {
+          path: 'cashier',
+          element: <CashierPage />,
         },
         {
           path: 'analytics',
@@ -311,6 +343,12 @@ export default function Router() {
           path: 'sales-report',
           children: [
             { path: 'list', element: <SalesReportPage /> },
+          ],
+        },
+        {
+          path: 'daily-report',
+          children: [
+            { path: 'list', element: <EmailReportPage /> },
           ],
         },
 
