@@ -39,7 +39,6 @@ const TABLE_HEAD = [
 // ----------------------------------------------------------------------
 export default function BrandListPage() {
   const {
-    dense,
     page,
     order,
     orderBy,
@@ -49,7 +48,6 @@ export default function BrandListPage() {
     setSelected,
     onSelectRow,
     onSort,
-    onChangeDense,
     onChangePage,
     onChangeRowsPerPage,
   } = useTable({
