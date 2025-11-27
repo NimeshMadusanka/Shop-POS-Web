@@ -101,15 +101,67 @@ export default function EmailReportPage() {
 
       const reportData = await getReportDataApi(params);
 
-      // Generate PDF using jsPDF (like AnalyticsPage)
+      // Generate PDF using jsPDF
       const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
       const marginLeft = 20;
       let currentY = 20;
+
+      // Load and add logo image at the top
+      try {
+        const logoUrl = '/ESSENTIALS.png';
+        const logoPromise = new Promise<void>((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              
+              if (ctx) {
+                ctx.drawImage(img, 0, 0);
+                const imgData = canvas.toDataURL('image/png');
+                
+                const maxWidth = 50;
+                const aspectRatio = img.width / img.height;
+                const logoWidth = maxWidth;
+                const logoHeight = maxWidth / aspectRatio;
+                const logoX = (pageWidth - logoWidth) / 2;
+                
+                doc.addImage(imgData, 'PNG', logoX, currentY, logoWidth, logoHeight);
+                currentY += logoHeight + 10;
+              }
+              resolve();
+            } catch (error) {
+              console.error('Error adding logo to PDF:', error);
+              resolve();
+            }
+          };
+          
+          img.onerror = () => {
+            console.warn('Could not load logo image, continuing without it');
+            resolve();
+          };
+          
+          img.src = logoUrl;
+        });
+        
+        await Promise.race([
+          logoPromise,
+          new Promise<void>((resolve) => setTimeout(resolve, 2000))
+        ]);
+      } catch (error) {
+        console.error('Error loading logo:', error);
+      }
 
       // Title
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      doc.text('Stock Report', marginLeft, currentY);
+      doc.text('Stock Report', pageWidth / 2, currentY, { align: 'center' });
       currentY += 10;
 
       // Brand Name (if filtered)
@@ -296,11 +348,138 @@ export default function EmailReportPage() {
 
         doc.setFontSize(11);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Total Products Stock In: ${reportData.statistics.totalStockIn}`, marginLeft, currentY);
+        doc.text(`Total Products Stock In: ${reportData.statistics.totalStockIn || 0}`, marginLeft, currentY);
         currentY += 7;
-        doc.text(`Total Products Sold: ${reportData.statistics.totalSold}`, marginLeft, currentY);
+        doc.text(`Total Products Sold: ${reportData.statistics.totalSold || 0}`, marginLeft, currentY);
         currentY += 7;
-        doc.text(`Total Products Returned: ${reportData.statistics.totalReturned}`, marginLeft, currentY);
+        doc.text(`Total Products Returned: ${reportData.statistics.totalReturned || 0}`, marginLeft, currentY);
+        currentY += 7;
+        
+        // Missing Stock Statistics
+        if (reportData.statistics.totalMissing !== undefined) {
+          doc.setTextColor(156, 39, 176); // Purple color for missing stock
+          doc.text(`Total Missing Stock Items: ${reportData.statistics.totalMissing || 0}`, marginLeft, currentY);
+          currentY += 7;
+          doc.text(`Total Missing Stock Amount: ${reportData.statistics.totalMissingAmount || 0}`, marginLeft, currentY);
+          doc.setTextColor(0, 0, 0); // Reset to black
+        }
+      }
+
+      // Low Stock Alerts Section
+      if (reportData.lowStockItems && reportData.lowStockItems.length > 0) {
+        // Check if we need a new page
+        if (currentY > 200) {
+          doc.addPage();
+          currentY = 20;
+        } else {
+          currentY += 15;
+        }
+
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(211, 47, 47); // Red color
+        doc.text('Low Stock Alerts', marginLeft, currentY);
+        doc.setTextColor(0, 0, 0); // Reset to black
+        currentY += 8;
+
+        autoTable(doc, {
+          startY: currentY,
+          head: [['Item Name', 'Brand', 'Category', 'Current Stock', 'Status']],
+          body: reportData.lowStockItems.map((item: any) => {
+            const stockLevel = item.stockQuantity || 0;
+            const statusText = stockLevel === 0 ? 'Out of Stock' : stockLevel <= 10 ? 'Critical' : 'Low';
+            return [
+              truncateText(item.itemName || 'N/A', 25),
+              truncateText(item.brandName || '-', 15),
+              truncateText(item.itemCategory || 'N/A', 15),
+              String(stockLevel),
+              statusText,
+            ];
+          }),
+          theme: 'grid',
+          headStyles: { fillColor: [211, 47, 47], fontSize: 9 },
+          margin: { left: marginLeft, right: 20 },
+          styles: { fontSize: 7, cellPadding: 1.5 },
+          columnStyles: {
+            0: { cellWidth: 50 },
+            1: { cellWidth: 35 },
+            2: { cellWidth: 35 },
+            3: { cellWidth: 30 },
+            4: { cellWidth: 30 },
+          },
+          tableWidth: 'auto',
+        });
+
+        const lowStockY = (doc as any).lastAutoTable?.finalY || currentY + 50;
+        currentY = lowStockY + 10;
+      }
+
+      // Missing Stock Alerts Section
+      if (reportData.missingStockItems && reportData.missingStockItems.length > 0) {
+        // Check if we need a new page
+        if (currentY > 200) {
+          doc.addPage();
+          currentY = 20;
+        } else {
+          currentY += 15;
+        }
+
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(156, 39, 176); // Purple color
+        doc.text('Missing Stock Alerts', marginLeft, currentY);
+        doc.setTextColor(0, 0, 0); // Reset to black
+        currentY += 8;
+
+        autoTable(doc, {
+          startY: currentY,
+          head: [['Item Name', 'Brand', 'Category', 'Missing Amount', 'Date']],
+          body: reportData.missingStockItems.map((item: any) => [
+            truncateText(item.itemName || 'N/A', 25),
+            truncateText(item.brandName || '-', 15),
+            truncateText(item.itemCategory || 'N/A', 15),
+            String(item.missingAmount || 0),
+            new Date(item.operationDate).toLocaleDateString(),
+          ]),
+          theme: 'grid',
+          headStyles: { fillColor: [156, 39, 176], fontSize: 9 },
+          margin: { left: marginLeft, right: 20 },
+          styles: { fontSize: 7, cellPadding: 1.5 },
+          columnStyles: {
+            0: { cellWidth: 50 },
+            1: { cellWidth: 35 },
+            2: { cellWidth: 35 },
+            3: { cellWidth: 30 },
+            4: { cellWidth: 35 },
+          },
+          tableWidth: 'auto',
+        });
+      }
+
+      // Add footer to all pages
+      const addFooter = (pageNum: number, totalPages: number) => {
+        const footerY = pageHeight - 15;
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100);
+        
+        // Company info
+        doc.text('YIVA Essentials', marginLeft, footerY);
+        doc.text('Designed and Developed by Ollcode', pageWidth - marginLeft, footerY, { align: 'right' });
+        
+        // Page number
+        doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth / 2, footerY, { align: 'center' });
+        
+        doc.setTextColor(0, 0, 0);
+      };
+
+      // Get total number of pages
+      const totalPages = doc.internal.pages.length - 1;
+      
+      // Add footer to all pages
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        addFooter(i, totalPages);
       }
 
       // Generate filename based on filters

@@ -40,7 +40,22 @@ type ReportData = {
     totalStockIn: number;
     totalSold: number;
     totalReturned: number;
+    totalMissing?: number;
+    totalMissingAmount?: number;
   } | null;
+  lowStockItems?: Array<{
+    itemName: string;
+    brandName: string;
+    itemCategory: string;
+    stockQuantity: number;
+  }>;
+  missingStockItems?: Array<{
+    itemName: string;
+    brandName: string;
+    itemCategory: string;
+    missingAmount: number;
+    operationDate: string;
+  }>;
 };
 
 const sendDailyReportApi = async (params: SendDailyReportParams) => {

@@ -58,4 +58,12 @@ const stockOutApi = async (itemId: string, quantity: number, reason: string, com
   return response?.data;
 };
 
-export { getItemData, createItemApi, updateItemApi, addStockApi, updateStockApi, stockOutApi, returnStockItemApi, discontinueItemApi };
+const getDiscontinuedItemsApi = async (companyID: string) => {
+  if (!companyID) throw new Error('companyID is required');
+  const response = await axios.get('/item/discontinued', {
+    params: { companyID },
+  });
+  return response?.data;
+};
+
+export { getItemData, createItemApi, updateItemApi, addStockApi, updateStockApi, stockOutApi, returnStockItemApi, discontinueItemApi, getDiscontinuedItemsApi };

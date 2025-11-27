@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { paramCase } from 'change-case';
 // @mui
 import { Card, Table, Divider, TableBody, Container, TableContainer, Tabs, Tab } from '@mui/material';
-import { getItemData } from 'src/api/ItemApi';
+import { getItemData, getDiscontinuedItemsApi } from 'src/api/ItemApi';
 // routes
 import { PATH_DASHBOARD } from '../../routes/paths';
 // @types
@@ -28,6 +28,7 @@ import { useNavigate } from 'react-router-dom';
 // sections
 import { ItemtableToolbar, ItemTableRow } from '../../sections/@dashboard/item/list';
 import StockManagementTableRow from '../../sections/@dashboard/item/StockManagementTableRow';
+import DiscontinuedProductTableRow from '../../sections/@dashboard/item/DiscontinuedProductTableRow';
 
 // ----------------------------------------------------------------------
 
@@ -152,10 +153,17 @@ export default function PaymentListPage() {
   const loadData = useCallback(async () => {
     setDataLoad(true);
     const companyID = user?.companyID;
-    const data = await getItemData(companyID);
-    setTableData(data);
+    if (currentTab === 2) {
+      // Load discontinued items for tab 2
+      const data = await getDiscontinuedItemsApi(companyID);
+      setTableData(data);
+    } else {
+      // Load regular items for tabs 0 and 1
+      const data = await getItemData(companyID);
+      setTableData(data);
+    }
     setDataLoad(false);
-  }, [user?.companyID]);
+  }, [user?.companyID, currentTab]);
 
   useEffect(() => {
     loadData();
@@ -163,6 +171,7 @@ export default function PaymentListPage() {
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
+    setPage(0); // Reset to first page when switching tabs
   };
 
   return (
@@ -181,6 +190,7 @@ export default function PaymentListPage() {
           <Tabs value={currentTab} onChange={handleTabChange} sx={{ px: 3, pt: 2 }}>
             <Tab label="Products" />
             <Tab label="Stock Management" />
+            <Tab label="Discontinued Products" />
           </Tabs>
 
           <Divider />
@@ -250,7 +260,7 @@ export default function PaymentListPage() {
                 </>
               )}
             </>
-          ) : (
+          ) : currentTab === 1 ? (
             <>
               {dataLoad ? (
                 <Loader />
@@ -314,6 +324,73 @@ export default function PaymentListPage() {
                     onPageChange={onChangePage}
                     onRowsPerPageChange={onChangeRowsPerPage}
                     //
+                  />
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              {dataLoad ? (
+                <Loader />
+              ) : (
+                <>
+                  <ItemtableToolbar
+                    isFiltered={isFiltered}
+                    filterName={filterName}
+                    filterRole={filterRole}
+                    optionsRole={ROLE_OPTIONS}
+                    onFilterName={handleFilterName}
+                    onFilterRole={handleFilterRole}
+                    onResetFilter={handleResetFilter}
+                  />
+
+                  <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
+                    <Scrollbar>
+                      <Table size="medium" sx={{ minWidth: 800 }}>
+                        <TableHeadCustom
+                          order={order}
+                          orderBy={orderBy}
+                          headLabel={[
+                            { id: 'itemName', label: 'Product Name', align: 'left' },
+                            { id: 'itemCategory', label: 'Category', align: 'left' },
+                            { id: 'brandName', label: 'Brand', align: 'left' },
+                            { id: 'discontinuedAt', label: 'Discontinued Date', align: 'left' },
+                            { id: '', label: 'Action', align: 'center' },
+                          ]}
+                          rowCount={tableData.length}
+                          numSelected={selected.length}
+                          onSort={onSort}
+                        />
+
+                        <TableBody>
+                          {dataFiltered
+                            .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                            .map((row) => (
+                              <DiscontinuedProductTableRow
+                                key={row._id}
+                                row={row}
+                                selected={selected.includes(row._id)}
+                                onSelectRow={() => onSelectRow(row._id)}
+                              />
+                            ))}
+
+                          <TableEmptyRows
+                            height={denseHeight}
+                            emptyRows={emptyRows(page, rowsPerPage, tableData.length)}
+                          />
+
+                          <TableNoData isNotFound={isNotFound} />
+                        </TableBody>
+                      </Table>
+                    </Scrollbar>
+                  </TableContainer>
+
+                  <TablePaginationCustom
+                    count={dataFiltered.length}
+                    page={page}
+                    rowsPerPage={rowsPerPage}
+                    onPageChange={onChangePage}
+                    onRowsPerPageChange={onChangeRowsPerPage}
                   />
                 </>
               )}

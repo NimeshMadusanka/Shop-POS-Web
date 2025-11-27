@@ -48,7 +48,7 @@ export default function ItemTableRow({
 }: Props) {
   const { itemName, itemCategory, itemPrice, itemDuration, stockQuantity, _id } = row;
   const stock = stockQuantity ?? 0;
-  const isLowStock = stock < 10;
+  const isLowStock = stock < 20;
   const [openDialog, setOpenDialog] = useState(false);
   const [openStockOutDialog, setOpenStockOutDialog] = useState(false);
   const [openStockCountDialog, setOpenStockCountDialog] = useState(false);

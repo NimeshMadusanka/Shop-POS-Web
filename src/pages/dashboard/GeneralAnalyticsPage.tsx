@@ -160,8 +160,8 @@ export default function GeneralAnalyticsPage() {
                       <TableBody>
                         {dashboardData.lowStockItemsList.map((item: any, index: number) => {
                           const stockLevel = item.stockQuantity || 0;
-                          const statusColor = stockLevel === 0 ? 'error' : stockLevel <= 5 ? 'warning' : 'info';
-                          const statusText = stockLevel === 0 ? 'Out of Stock' : stockLevel <= 5 ? 'Critical' : 'Low';
+                          const statusColor = stockLevel === 0 ? 'error' : stockLevel <= 10 ? 'warning' : 'info';
+                          const statusText = stockLevel === 0 ? 'Out of Stock' : stockLevel <= 10 ? 'Critical' : 'Low';
                           
                           return (
                             <TableRow key={index} hover>
@@ -175,7 +175,7 @@ export default function GeneralAnalyticsPage() {
                                   variant="body2"
                                   sx={{
                                     fontWeight: 'bold',
-                                    color: stockLevel === 0 ? 'error.main' : stockLevel <= 5 ? 'warning.main' : 'info.main',
+                                    color: stockLevel === 0 ? 'error.main' : stockLevel <= 10 ? 'warning.main' : 'info.main',
                                   }}
                                 >
                                   {stockLevel}
