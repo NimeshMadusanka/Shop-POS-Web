@@ -20,7 +20,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { LoadingButton } from '@mui/lab';
 import { useSnackbar } from '../../../components/snackbar';
-import { getPaymentData, getPaymentByInvoiceNumber } from '../../../api/PaymentApi';
+import { getPaymentData } from '../../../api/PaymentApi';
 import { refundPaymentApi } from '../../../api/PaymentApi';
 import { NewPaymentCreate } from '../../../@types/user';
 
