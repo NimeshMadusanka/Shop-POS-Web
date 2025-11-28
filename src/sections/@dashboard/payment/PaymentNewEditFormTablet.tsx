@@ -723,7 +723,7 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
   variant="contained"
   loading={isSubmitting}
   sx={{
-    backgroundColor: '#FF9800',
+    backgroundColor: '#6B8E5A',
     fontWeight: 600,
     fontSize: '20px',        // 🔥 Button text size
     height: '55px',          // 🔥 Button height
@@ -733,7 +733,7 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
     opacity: 1,
     textTransform: 'none',   // 🔥 prevents uppercase (optional)
     ':hover': {
-      backgroundColor: '#FFB74D',
+      backgroundColor: '#4A5D3F',
       color: '#ffffff',
     },
   }}

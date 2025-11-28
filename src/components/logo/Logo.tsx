@@ -4,7 +4,7 @@ import { forwardRef } from 'react';
 import { Box, Link, BoxProps, Typography } from '@mui/material';
 
 import PRSMiniLogo from 'src/assets/logo_mini.svg';
-import PRSLogo from 'src/assets/logo.svg';
+import EssentialsLogo from 'src/assets/ESSENTIALS.png';
 
 // ----------------------------------------------------------------------
 
@@ -37,8 +37,7 @@ const Logo = forwardRef<HTMLDivElement, LogoProps>(
         ref={ref}
         component="div"
         sx={{
-          // width: { lg: 90, md: 85, sm: 70, xs: 70 },
-          width:'auto',
+          width: { lg: 40, md: 35, sm: 30, xs: 0 },
           height: 'auto',
           display: { lg: 'inline-flex', md: 'inline-flex', sm: 'none', xs: 'none' },
           alignSelf: { lg: 'left', md: 'left', sm: 'left', xs: 'left' },
@@ -48,9 +47,16 @@ const Logo = forwardRef<HTMLDivElement, LogoProps>(
         }}
         {...other}
       >
-        {/* <img src={PRSIcon} alt="" width={30} /> */}
-       
-        <img src={PRSLogo} alt="POS Shop Logo" width={120} style={{ maxWidth: '100%', height: 'auto' }} />
+        <Box
+          component="img"
+          src={EssentialsLogo}
+          alt="YIVA Essentials Logo"
+          sx={{
+            width: '100%',
+            height: 'auto',
+            objectFit: 'contain',
+          }}
+        />
 
 
         {/* <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 512 512">
@@ -110,14 +116,41 @@ const Ollcode = forwardRef<HTMLDivElement, LogoProps>(
         component="div"
         sx={{
           height: 'auto',
-          display: { lg: 'inline-flex', md: 'inline-flex', sm: 'none', xs: 'none' },
+          display: { lg: 'inline-flex', md: 'inline-flex', sm: 'inline-flex', xs: 'inline-flex' },
           alignSelf: { lg: 'left', md: 'left', sm: 'left', xs: 'left' },
           ...sx,
         }}
         {...other}
       >
-        <Typography>
-          Designed and Developed by <span style={{ fontWeight: 'bold' }}>Ollcode</span>
+        <Typography
+          variant="body1"
+          sx={{
+            fontSize: { lg: '18px', md: '17px', sm: '16px', xs: '14px' },
+            fontWeight: 500,
+            color: '#FFFFFF',
+            letterSpacing: 0.5,
+            textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5)',
+          }}
+        >
+          <Box
+            component="span"
+            sx={{
+              color: 'rgba(255, 255, 255, 0.9)',
+            }}
+          >
+            Designed and Developed by{' '}
+          </Box>
+          <Box
+            component="span"
+            sx={{
+              fontWeight: 700,
+              fontSize: { lg: '20px', md: '19px', sm: '18px', xs: '16px' },
+              color: '#4A5D3F',
+              textShadow: '0 2px 4px rgba(255,255,255,0.8), 0 0 8px rgba(255,255,255,0.5)',
+            }}
+          >
+            Ollcode
+          </Box>
         </Typography>
       </Box>
     );

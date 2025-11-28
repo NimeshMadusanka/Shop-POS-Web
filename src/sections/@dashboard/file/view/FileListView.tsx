@@ -45,7 +45,6 @@ export default function FileListView({
   onOpenConfirm,
 }: Props) {
   const {
-    dense,
     page,
     order,
     orderBy,
@@ -56,18 +55,16 @@ export default function FileListView({
     onSelectAllRows,
     //
     onSort,
-    onChangeDense,
     onChangePage,
     onChangeRowsPerPage,
   } = table;
 
-  const denseHeight = dense ? 52 : 72;
+  const denseHeight = 72;
 
   return (
     <>
       <Box sx={{ px: 1, position: 'relative', borderRadius: 1.5, bgcolor: 'background.neutral' }}>
         <TableSelectedAction
-          dense={dense}
           numSelected={selected.length}
           rowCount={tableData.length}
           onSelectAllRows={(checked) =>
@@ -104,7 +101,7 @@ export default function FileListView({
 
         <TableContainer>
           <Table
-            size={dense ? 'small' : 'medium'}
+            size="medium"
             sx={{
               minWidth: 960,
               borderCollapse: 'separate',
@@ -164,9 +161,6 @@ export default function FileListView({
         rowsPerPage={rowsPerPage}
         onPageChange={onChangePage}
         onRowsPerPageChange={onChangeRowsPerPage}
-        //
-        dense={dense}
-        onChangeDense={onChangeDense}
         sx={{
           '& .MuiTablePagination-root': { borderTop: 'none' },
           '& .MuiFormControlLabel-root': { px: 0 },

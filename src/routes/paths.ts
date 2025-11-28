@@ -18,7 +18,6 @@ export const PATH_AUTH = {
   // companylist: path(ROOTS_AUTH, '/company-list'),
   // companyedit: path(ROOTS_AUTH, '/company-edit'),
   register: path(ROOTS_AUTH, '/register'),
-  signUp: path(ROOTS_AUTH, '/sign-up'),
   loginUnprotected: path(ROOTS_AUTH, '/login-unprotected'),
   registerUnprotected: path(ROOTS_AUTH, '/register-unprotected'),
   verify: path(ROOTS_AUTH, '/verify'),
@@ -92,6 +91,24 @@ export const PATH_DASHBOARD = {
     list: path(ROOTS_DASHBOARD, '/item/list'),
     edit: (name: string) => path(ROOTS_DASHBOARD, `/item/${name}/edit`),
   },
+  brand: {
+    root: path(ROOTS_DASHBOARD, '/brand'),
+    new: path(ROOTS_DASHBOARD, '/brand/new'),
+    list: path(ROOTS_DASHBOARD, '/brand/list'),
+    edit: (name: string) => path(ROOTS_DASHBOARD, `/brand/${name}/edit`),
+  },
+  provider: {
+    root: path(ROOTS_DASHBOARD, '/provider'),
+    new: path(ROOTS_DASHBOARD, '/provider/new'),
+    list: path(ROOTS_DASHBOARD, '/provider/list'),
+    edit: (name: string) => path(ROOTS_DASHBOARD, `/provider/${name}/edit`),
+  },
+  shop: {
+    root: path(ROOTS_DASHBOARD, '/shop'),
+    new: path(ROOTS_DASHBOARD, '/shop/new'),
+    list: path(ROOTS_DASHBOARD, '/shop/list'),
+    edit: (name: string) => path(ROOTS_DASHBOARD, `/shop/${name}/edit`),
+  },
 
   customer: {
     root: path(ROOTS_DASHBOARD, '/customer'),
@@ -150,9 +167,20 @@ payrun: {
           wiretransfer: path(ROOTS_DASHBOARD, '/payment/wiretransfer'),
     edit: (name: string) => path(ROOTS_DASHBOARD, `/payment/${name}/edit`),
   },
+  cashier: {
+    root: path(ROOTS_DASHBOARD, '/cashier'),
+  },
   analytics: {
     root: path(ROOTS_DASHBOARD, '/analytics'),
     list: path(ROOTS_DASHBOARD, '/analytics/list'),
+  },
+  salesReport: {
+    root: path(ROOTS_DASHBOARD, '/sales-report'),
+    list: path(ROOTS_DASHBOARD, '/sales-report/list'),
+  },
+  dailyReport: {
+    root: path(ROOTS_DASHBOARD, '/daily-report'),
+    list: path(ROOTS_DASHBOARD, '/daily-report/list'),
   },
 
   category: {

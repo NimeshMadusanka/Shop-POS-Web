@@ -7,6 +7,7 @@ import { MotionContainer, varBounce } from '../components/animate';
 import { ForbiddenIllustration } from '../assets/illustrations';
 //
 import { useAuthContext } from './useAuthContext';
+import { useAdminUnlock } from '../contexts/AdminUnlockContext';
 
 // ----------------------------------------------------------------------
 
@@ -19,11 +20,15 @@ type RoleBasedGuardProp = {
 export default function RoleBasedGuard({ hasContent, roles, children }: RoleBasedGuardProp) {
   // Logic here to get current user role
   const { user } = useAuthContext();
+  const { isAdminUnlocked } = useAdminUnlock();
 
   // const currentRole = 'user';
   const currentRole = user?.role; // admin;
+  
+  // If cashier has unlocked admin access, treat them as admin for route access
+  const effectiveRole = currentRole === 'cashier' && isAdminUnlocked ? 'admin' : currentRole;
 
-  if (typeof roles !== 'undefined' && !roles.includes(currentRole)) {
+  if (typeof roles !== 'undefined' && !roles.includes(effectiveRole)) {
     return hasContent ? (
       <Container component={MotionContainer} sx={{ textAlign: 'center' }}>
         <m.div variants={varBounce().in}>

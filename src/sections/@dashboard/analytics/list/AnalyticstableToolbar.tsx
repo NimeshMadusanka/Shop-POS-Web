@@ -9,6 +9,8 @@ type Props = {
   filterName: string;
   filterType: string;
   filterItem: string;
+  filterDateFrom: string;
+  filterDateTo: string;
   isFiltered: boolean;
   optionsType: string[];
   optionsItem: string[];
@@ -16,6 +18,8 @@ type Props = {
   onFilterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onFilterType: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onFilterItem: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onFilterDateFrom: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onFilterDateTo: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 const INPUT_WIDTH = 160;
@@ -25,11 +29,15 @@ export default function AnalyticstableToolbar({
   filterName,
   filterType,
   filterItem,
+  filterDateFrom,
+  filterDateTo,
   optionsType,
   optionsItem,
   onFilterName,
   onFilterType,
   onFilterItem,
+  onFilterDateFrom,
+  onFilterDateTo,
   onResetFilter,
 }: Props) {
   return (
@@ -119,6 +127,34 @@ export default function AnalyticstableToolbar({
               <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
             </InputAdornment>
           ),
+        }}
+      />
+
+      <TextField
+        fullWidth
+        type="date"
+        label="Date From"
+        value={filterDateFrom}
+        onChange={onFilterDateFrom}
+        InputLabelProps={{
+          shrink: true,
+        }}
+        sx={{
+          maxWidth: { md: INPUT_WIDTH },
+        }}
+      />
+
+      <TextField
+        fullWidth
+        type="date"
+        label="Date To"
+        value={filterDateTo}
+        onChange={onFilterDateTo}
+        InputLabelProps={{
+          shrink: true,
+        }}
+        sx={{
+          maxWidth: { md: INPUT_WIDTH },
         }}
       />
 

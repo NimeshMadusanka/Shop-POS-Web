@@ -4,7 +4,6 @@ import { Checkbox, Typography, Stack, StackProps } from '@mui/material';
 // ----------------------------------------------------------------------
 
 interface Props extends StackProps {
-  dense?: boolean;
   action?: React.ReactNode;
   rowCount: number;
   numSelected: number;
@@ -12,7 +11,6 @@ interface Props extends StackProps {
 }
 
 export default function TableSelectedAction({
-  dense,
   action,
   rowCount,
   numSelected,
@@ -38,9 +36,6 @@ export default function TableSelectedAction({
         height: 58,
         position: 'absolute',
         bgcolor: 'primary.lighter',
-        ...(dense && {
-          height: 38,
-        }),
         ...sx,
       }}
       {...other}
@@ -59,9 +54,6 @@ export default function TableSelectedAction({
           ml: 2,
           flexGrow: 1,
           color: 'primary.main',
-          ...(dense && {
-            ml: 3,
-          }),
         }}
       >
         {numSelected} selected

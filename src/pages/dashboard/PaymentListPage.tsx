@@ -48,18 +48,15 @@ const ROLE_OPTIONS = [
 ];
 
 const TABLE_HEAD = [
-  { id: 'customerName', label: 'Customer Name', align: 'left' },
+  { id: 'invoiceNumber', label: 'Invoice No', align: 'left' },
   { id: 'date', label: 'Date', align: 'left' },
   { id: 'grandTotal', label: 'Grand Total', align: 'left' },
-
-  { id: '', label: 'Action', align: 'left' },
-  { id: '' },
+  { id: '', label: 'Action', align: 'center' },
 ];
 
 // ----------------------------------------------------------------------
 export default function PaymentListPage() {
   const {
-    dense,
     page,
     order,
     orderBy,
@@ -71,11 +68,10 @@ export default function PaymentListPage() {
     onSelectRow,
     //
     onSort,
-    onChangeDense,
     onChangePage,
     onChangeRowsPerPage,
   } = useTable({
-    defaultOrderBy: 'date',
+    defaultOrderBy: 'invoiceNumber',
     defaultOrder: 'desc',
   });
 
@@ -103,7 +99,7 @@ export default function PaymentListPage() {
 
   const dataInPage = dataFiltered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  const denseHeight = dense ? 52 : 72;
+  const denseHeight = 72;
 
   const isFiltered = filterName !== '' || filterRole !== 'all' || filterStatus !== 'all';
 
@@ -172,7 +168,7 @@ export default function PaymentListPage() {
     } finally {
       setDataLoad(false);
     }
-  }, [user?.companyID]);
+  }, [user]);
 
   useEffect(() => {
     loadData();
@@ -214,9 +210,9 @@ export default function PaymentListPage() {
               onClick={loadData}
               disabled={dataLoad}
               sx={{
-                borderColor: '#FF9800',
-                color: '#FF9800',
-                '&:hover': { borderColor: '#F57C00', backgroundColor: '#fff3e0' },
+                borderColor: 'primary.main',
+                color: 'primary.main',
+                '&:hover': { borderColor: 'primary.dark', backgroundColor: 'primary.lighter' },
               }}
             >
               Refresh
@@ -258,7 +254,7 @@ export default function PaymentListPage() {
 
             <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
               <Scrollbar>
-                <Table size={dense ? 'small' : 'medium'} sx={{ minWidth: 800 }}>
+                <Table size="medium" sx={{ minWidth: 800 }}>
                   <TableHeadCustom
                     order={order}
                     orderBy={orderBy}
@@ -286,6 +282,7 @@ export default function PaymentListPage() {
                                 onSelectRow={() => onSelectRow(row._id)}
                                 onEditRow={() => handleEditRow(row._id, { state: row })}
                                 onDeleteRow={() => handleDeleteRow(row._id)}
+                                onRefresh={loadData}
                               />
                             );
                           } catch (err) {
@@ -313,8 +310,6 @@ export default function PaymentListPage() {
               onPageChange={onChangePage}
               onRowsPerPageChange={onChangeRowsPerPage}
               //
-              dense={dense}
-              onChangeDense={onChangeDense}
             />
           </Card>
         )}
@@ -352,8 +347,8 @@ function applyFilter({
     inputData = inputData.filter(
       (payment) =>
         payment &&
-        payment.customerName &&
-        payment.customerName.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
+        payment.invoiceNumber &&
+        payment.invoiceNumber.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
     );
   }
 

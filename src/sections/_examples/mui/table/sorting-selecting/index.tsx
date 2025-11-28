@@ -66,7 +66,6 @@ const TABLE_HEAD = [
 
 export default function SortingSelecting() {
   const {
-    dense,
     page,
     order,
     orderBy,
@@ -77,7 +76,6 @@ export default function SortingSelecting() {
     onSelectAllRows,
     //
     onSort,
-    onChangeDense,
     onChangePage,
     onChangeRowsPerPage,
   } = useTable({
@@ -95,7 +93,7 @@ export default function SortingSelecting() {
     comparator: getComparator(order, orderBy),
   });
 
-  const denseHeight = dense ? 34 : 54;
+  const denseHeight = 54;
 
   return (
     <div>
@@ -103,7 +101,6 @@ export default function SortingSelecting() {
 
       <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
         <TableSelectedAction
-          dense={dense}
           numSelected={selected.length}
           rowCount={tableData.length}
           onSelectAllRows={(checked) =>
@@ -122,7 +119,7 @@ export default function SortingSelecting() {
         />
 
         <Scrollbar>
-          <Table size={dense ? 'small' : 'medium'} sx={{ minWidth: 800 }}>
+          <Table size="medium" sx={{ minWidth: 800 }}>
             <TableHeadCustom
               order={order}
               orderBy={orderBy}
@@ -174,9 +171,6 @@ export default function SortingSelecting() {
         rowsPerPage={rowsPerPage}
         onPageChange={onChangePage}
         onRowsPerPageChange={onChangeRowsPerPage}
-        //
-        dense={dense}
-        onChangeDense={onChangeDense}
       />
     </div>
   );

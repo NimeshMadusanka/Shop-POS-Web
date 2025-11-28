@@ -18,11 +18,16 @@ const updateItemApi = async (payload: CreateItem, id: string, boolValue: boolean
   return response?.data;
 };
 
-const getItemData = async (companyID: string) => {
+const getItemData = async (companyID: string, brandId?: string) => {
   if (!companyID) throw new Error('companyID is required');
 
+  const params: any = { companyID };
+  if (brandId) {
+    params.brandId = brandId;
+  }
+
   const response = await axios.get('/item', {
-    params: { companyID },
+    params,
   });
 
   return response?.data;
@@ -38,4 +43,27 @@ const updateStockApi = async (itemId: string, stockQuantity: number) => {
   return response?.data;
 };
 
-export { getItemData, createItemApi, updateItemApi, addStockApi, updateStockApi };
+const returnStockItemApi = async (itemId: string, quantity: number, companyID: string) => {
+  const response = await axios.post(`/item/${itemId}/stock-out`, { quantity, companyID });
+  return response?.data;
+};
+
+const discontinueItemApi = async (itemId: string) => {
+  const response = await axios.patch(`/item/${itemId}/discontinue`);
+  return response?.data;
+};
+
+const stockOutApi = async (itemId: string, quantity: number, reason: string, companyID: string) => {
+  const response = await axios.post(`/item/${itemId}/stock-out`, { quantity, reason, companyID });
+  return response?.data;
+};
+
+const getDiscontinuedItemsApi = async (companyID: string) => {
+  if (!companyID) throw new Error('companyID is required');
+  const response = await axios.get('/item/discontinued', {
+    params: { companyID },
+  });
+  return response?.data;
+};
+
+export { getItemData, createItemApi, updateItemApi, addStockApi, updateStockApi, stockOutApi, returnStockItemApi, discontinueItemApi, getDiscontinuedItemsApi };

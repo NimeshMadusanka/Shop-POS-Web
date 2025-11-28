@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { getDashboardData } from 'src/api/Dashboard';
-import { Grid, Container, Typography } from '@mui/material';
+import { Grid, Container, Typography, Card, Table, TableHead, TableBody, TableRow, TableCell, Chip, Box } from '@mui/material';
 import { useSnackbar } from 'notistack';
 
 // components
@@ -26,6 +26,7 @@ export default function GeneralAnalyticsPage() {
     totalSales: 0,
     totalTransactions: 0,
     lowStockItems: 0,
+    lowStockItemsList: [],
     stockInToday: 0,
     stockOutToday: 0,
     userVisitChartData: {
@@ -96,7 +97,6 @@ export default function GeneralAnalyticsPage() {
                 total={dashboardData.totalProducts || 0}
                 color="primary"
                 icon=""
-                sx={{ backgroundColor: '#FFB74D', color: 'black' }}
               />
             </Grid>
 
@@ -104,9 +104,8 @@ export default function GeneralAnalyticsPage() {
               <AnalyticsWidgetSummary
                 title="Total Transactions"
                 total={dashboardData.totalTransactions || 0}
-                color="info"
+                color="primary"
                 icon=""
-                sx={{ backgroundColor: '#FFCC80' }}
               />
             </Grid>
 
@@ -114,9 +113,8 @@ export default function GeneralAnalyticsPage() {
               <AnalyticsWidgetSummary
                 title="Low Stock Items"
                 total={dashboardData.lowStockItems || 0}
-                color="warning"
+                color="primary"
                 icon=""
-                sx={{ backgroundColor: '#E9ECEE' }}
               />
             </Grid>
 
@@ -124,8 +122,8 @@ export default function GeneralAnalyticsPage() {
               <AnalyticsWidgetSummary
                 title="Total Sales"
                 total={`Rs. ${(dashboardData.totalSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                color="primary"
                 icon=""
-                sx={{ backgroundColor: '#ACACAC', color: '#333333' }}
               />
             </Grid>
 
@@ -141,6 +139,65 @@ export default function GeneralAnalyticsPage() {
                 }}
               />
             </Grid>
+
+            {dashboardData.lowStockItemsList && dashboardData.lowStockItemsList.length > 0 && (
+              <Grid item xs={12} md={12} lg={12}>
+                <Card>
+                  <Box sx={{ p: 3 }}>
+                    <Typography variant="h6" sx={{ mb: 2, color: 'error.main' }}>
+                      ⚠️ Low Stock Alerts
+                    </Typography>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Item Name</TableCell>
+                          <TableCell>Brand</TableCell>
+                          <TableCell>Category</TableCell>
+                          <TableCell align="right">Current Stock</TableCell>
+                          <TableCell align="center">Status</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {dashboardData.lowStockItemsList.map((item: any, index: number) => {
+                          const stockLevel = item.stockQuantity || 0;
+                          const statusColor = stockLevel === 0 ? 'error' : stockLevel <= 10 ? 'warning' : 'info';
+                          const statusText = stockLevel === 0 ? 'Out of Stock' : stockLevel <= 10 ? 'Critical' : 'Low';
+                          
+                          return (
+                            <TableRow key={index} hover>
+                              <TableCell>
+                                <Typography variant="subtitle2">{item.itemName || 'N/A'}</Typography>
+                              </TableCell>
+                              <TableCell>{item.brandName || 'N/A'}</TableCell>
+                              <TableCell>{item.itemCategory || 'N/A'}</TableCell>
+                              <TableCell align="right">
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: 'bold',
+                                    color: stockLevel === 0 ? 'error.main' : stockLevel <= 10 ? 'warning.main' : 'info.main',
+                                  }}
+                                >
+                                  {stockLevel}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="center">
+                                <Chip
+                                  label={statusText}
+                                  color={statusColor}
+                                  size="small"
+                                  variant="filled"
+                                />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </Box>
+                </Card>
+              </Grid>
+            )}
           </Grid>
         )}
       </Container>

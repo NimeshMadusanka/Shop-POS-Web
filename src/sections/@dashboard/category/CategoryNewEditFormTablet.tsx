@@ -36,7 +36,7 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
       .trim()
       .required('Category Name is required')
       .min(3, 'Must be at least 3 characters')
-      .max(50, 'Must be 50 characters or less'),
+      .max(30, 'Must be 30 characters or less'),
 
     description: Yup.string()
       .trim()
@@ -126,12 +126,12 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
                 variant="contained"
                 loading={isSubmitting}
                 sx={{
-                  backgroundColor: '#FF9800',
+                  backgroundColor: '#6B8E5A',
                   fontWeight: 500,
                   letterSpacing: 0,
                   opacity: 1,
                   ':hover': {
-                    backgroundColor: '#FFB74D',
+                    backgroundColor: '#4A5D3F',
                     color: '#ffffff',
                   },
                 }}

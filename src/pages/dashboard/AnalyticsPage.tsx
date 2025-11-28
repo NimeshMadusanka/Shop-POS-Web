@@ -23,7 +23,6 @@ import {
 import Loader from '../../components/loading-screen';
 import { useAuthContext } from 'src/auth/useAuthContext';
 import Iconify from '../../components/iconify';
-import { getItemData } from 'src/api/ItemApi';
 // sections
 import { AnalyticsTableRow, AnalyticstableToolbar } from '../../sections/@dashboard/analytics/list';
 
@@ -44,20 +43,18 @@ interface StockActivity {
   itemId: string;
   itemName: string;
   amount: number;
-  operationType: 'Stock-in' | 'Stock-out';
+  operationType: 'Stock-in' | 'Stock-out' | 'refunded-stock-in' | 'Returning-stock-out' | 'missing';
   operationDate: string;
 }
 
 export default function AnalyticsPage() {
   const {
-    dense,
     page,
     order,
     orderBy,
     rowsPerPage,
     setPage,
     onSort,
-    onChangeDense,
     onChangePage,
     onChangeRowsPerPage,
   } = useTable({
@@ -70,6 +67,8 @@ export default function AnalyticsPage() {
   const [filterName, setFilterName] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterItem, setFilterItem] = useState('all');
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
   const { user } = useAuthContext();
   const [dataLoad, setDataLoad] = useState(false);
 
@@ -82,13 +81,13 @@ export default function AnalyticsPage() {
     filterName,
     filterType,
     filterItem,
+    filterDateFrom,
+    filterDateTo,
   });
 
-  const dataInPage = dataFiltered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const denseHeight = 72;
 
-  const denseHeight = dense ? 52 : 72;
-
-  const isFiltered = filterName !== '' || filterType !== 'all' || filterItem !== 'all';
+  const isFiltered = filterName !== '' || filterType !== 'all' || filterItem !== 'all' || filterDateFrom !== '' || filterDateTo !== '';
 
   const isNotFound = !dataFiltered.length && isFiltered;
 
@@ -111,6 +110,8 @@ export default function AnalyticsPage() {
     setFilterName('');
     setFilterType('all');
     setFilterItem('all');
+    setFilterDateFrom('');
+    setFilterDateTo('');
   };
 
   const loadData = useCallback(async () => {
@@ -186,37 +187,48 @@ export default function AnalyticsPage() {
     }
 
     // Table
+    // Calculate available width: A4 width (210mm) - left margin (20mm) - right margin (20mm) = 170mm
+    // Truncate long item names to prevent overflow
+    const truncateText = (text: string, maxLength: number) => {
+      if (text.length <= maxLength) return text;
+      return text.substring(0, maxLength - 3) + '...';
+    };
+
     autoTable(doc, {
       startY: currentY,
       head: [['Item ID', 'Item Name', 'Amount', 'Type', 'Date and Time']],
       body: dataFiltered.map((activity) => [
         String(activity.itemId).slice(-8),
-        activity.itemName,
+        truncateText(activity.itemName, 25),
         String(activity.amount),
         activity.operationType,
         new Date(activity.operationDate).toLocaleString(),
       ]),
       theme: 'grid',
-      headStyles: { fillColor: [0, 102, 204] },
-      margin: { left: marginLeft },
-      styles: { fontSize: 9 },
+      headStyles: { fillColor: [0, 102, 204], fontSize: 9 },
+      margin: { left: marginLeft, right: 20 },
+      styles: { fontSize: 8, cellPadding: 2 },
       columnStyles: {
-        0: { cellWidth: 30 },
-        1: { cellWidth: 50 },
-        2: { cellWidth: 25 },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 55 },
+        0: { cellWidth: 25 },  // Item ID
+        1: { cellWidth: 45 },  // Item Name
+        2: { cellWidth: 20 },  // Amount
+        3: { cellWidth: 25 },  // Type
+        4: { cellWidth: 55 },  // Date and Time
       },
     });
 
     // Summary
     const stockInCount = dataFiltered.filter((a) => a.operationType === 'Stock-in').length;
     const stockOutCount = dataFiltered.filter((a) => a.operationType === 'Stock-out').length;
+    const missingCount = dataFiltered.filter((a) => a.operationType === 'missing').length;
     const totalStockIn = dataFiltered
       .filter((a) => a.operationType === 'Stock-in')
       .reduce((sum, a) => sum + a.amount, 0);
     const totalStockOut = dataFiltered
       .filter((a) => a.operationType === 'Stock-out')
+      .reduce((sum, a) => sum + a.amount, 0);
+    const totalMissing = dataFiltered
+      .filter((a) => a.operationType === 'missing')
       .reduce((sum, a) => sum + a.amount, 0);
 
     const finalY = (doc as any).lastAutoTable?.finalY || currentY + 50;
@@ -231,16 +243,20 @@ export default function AnalyticsPage() {
     doc.setFont('helvetica', 'normal');
     doc.text(`Total Stock-in Operations: ${stockInCount}`, marginLeft, currentY);
     doc.text(`Total Stock-out Operations: ${stockOutCount}`, marginLeft + 80, currentY);
+    doc.text(`Total Missing Operations: ${missingCount}`, marginLeft + 160, currentY);
     currentY += 6;
     doc.text(`Total Stock-in Amount: ${totalStockIn}`, marginLeft, currentY);
     doc.text(`Total Stock-out Amount: ${totalStockOut}`, marginLeft + 80, currentY);
+    doc.text(`Total Missing Amount: ${totalMissing}`, marginLeft + 160, currentY);
 
     // Generate filename based on filters
     let filename = `item_activity_analytics_${new Date().toISOString().split('T')[0]}`;
     if (isFiltered) {
       filename += '_filtered';
-      if (filterType !== 'all') filename += `_${filterType.replace('-', '_')}`;
+      if (filterType !== 'all') filename += `_${filterType.replace(/-/g, '_')}`;
       if (filterItem !== 'all') filename += `_${filterItem.replace(/\s+/g, '_')}`;
+      if (filterDateFrom) filename += `_from_${filterDateFrom}`;
+      if (filterDateTo) filename += `_to_${filterDateTo}`;
     }
     filename += '.pdf';
 
@@ -269,9 +285,9 @@ export default function AnalyticsPage() {
                 onClick={loadData}
                 disabled={dataLoad}
                 sx={{
-                  borderColor: '#FF9800',
-                  color: '#FF9800',
-                  '&:hover': { borderColor: '#F57C00', backgroundColor: '#fff3e0' },
+                  borderColor: '#8ed973',
+                  color: '#8ed973',
+                  '&:hover': { borderColor: '#12501a', backgroundColor: '#daf2d0' },
                 }}
               >
                 Refresh
@@ -281,8 +297,8 @@ export default function AnalyticsPage() {
                 startIcon={<Iconify icon="eva:download-fill" />}
                 onClick={handleDownloadPDF}
                 sx={{
-                  backgroundColor: '#FF9800',
-                  '&:hover': { backgroundColor: '#F57C00' },
+                  backgroundColor: '#6B8E5A',
+                  '&:hover': { backgroundColor: '#4A5D3F' },
                 }}
               >
                 Download PDF
@@ -302,17 +318,27 @@ export default function AnalyticsPage() {
               filterName={filterName}
               filterType={filterType}
               filterItem={filterItem}
-              optionsType={['all', 'Stock-in', 'Stock-out']}
+              filterDateFrom={filterDateFrom}
+              filterDateTo={filterDateTo}
+              optionsType={['all', 'Stock-in', 'Stock-out', 'refunded-stock-in', 'Returning-stock-out', 'missing']}
               optionsItem={['all', ...uniqueItems]}
               onFilterName={handleFilterName}
               onFilterType={handleFilterType}
               onFilterItem={handleFilterItem}
+              onFilterDateFrom={(e) => {
+                setPage(0);
+                setFilterDateFrom(e.target.value);
+              }}
+              onFilterDateTo={(e) => {
+                setPage(0);
+                setFilterDateTo(e.target.value);
+              }}
               onResetFilter={handleResetFilter}
             />
 
             <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
               <Scrollbar>
-                <Table size={dense ? 'small' : 'medium'} sx={{ minWidth: 800 }}>
+                <Table size="medium" sx={{ minWidth: 800 }}>
                   <TableHeadCustom
                     order={order}
                     orderBy={orderBy}
@@ -348,8 +374,6 @@ export default function AnalyticsPage() {
               rowsPerPage={rowsPerPage}
               onPageChange={onChangePage}
               onRowsPerPageChange={onChangeRowsPerPage}
-              dense={dense}
-              onChangeDense={onChangeDense}
             />
           </Card>
         )}
@@ -366,12 +390,16 @@ function applyFilter({
   filterName,
   filterType,
   filterItem,
+  filterDateFrom,
+  filterDateTo,
 }: {
   inputData: StockActivity[];
   comparator: (a: any, b: any) => number;
   filterName: string;
   filterType: string;
   filterItem: string;
+  filterDateFrom: string;
+  filterDateTo: string;
 }) {
   const stabilizedThis = inputData.map((el, index) => [el, index] as const);
 
@@ -401,6 +429,26 @@ function applyFilter({
         activity.itemName &&
         activity.itemName.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
     );
+  }
+
+  // Filter by date range
+  if (filterDateFrom) {
+    const fromDate = new Date(filterDateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    filteredData = filteredData.filter((activity) => {
+      const activityDate = new Date(activity.operationDate);
+      activityDate.setHours(0, 0, 0, 0);
+      return activityDate >= fromDate;
+    });
+  }
+
+  if (filterDateTo) {
+    const toDate = new Date(filterDateTo);
+    toDate.setHours(23, 59, 59, 999);
+    filteredData = filteredData.filter((activity) => {
+      const activityDate = new Date(activity.operationDate);
+      return activityDate <= toDate;
+    });
   }
 
   return filteredData;

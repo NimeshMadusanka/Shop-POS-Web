@@ -14,14 +14,18 @@ import {
   Button,
   TextField,
   Box,
+  Alert,
 } from '@mui/material';
 import ModeEditIcon from '@mui/icons-material/ModeEdit';
 import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
+import InventoryIcon from '@mui/icons-material/Inventory';
 // @types
 import { NewItemCreate } from '../../../../@types/user';
 // components
 import { useSnackbar } from '../../../../components/snackbar';
-import { addStockApi } from '../../../../api/ItemApi';
+import { addStockApi, updateStockApi } from '../../../../api/ItemApi';
+import StockOutDialog from '../StockOutDialog';
 
 // ----------------------------------------------------------------------
 
@@ -44,10 +48,14 @@ export default function ItemTableRow({
 }: Props) {
   const { itemName, itemCategory, itemPrice, itemDuration, stockQuantity, _id } = row;
   const stock = stockQuantity ?? 0;
-  const isLowStock = stock < 10;
+  const isLowStock = stock < 20;
   const [openDialog, setOpenDialog] = useState(false);
+  const [openStockOutDialog, setOpenStockOutDialog] = useState(false);
+  const [openStockCountDialog, setOpenStockCountDialog] = useState(false);
   const [quantity, setQuantity] = useState('');
+  const [stockCount, setStockCount] = useState('');
   const [loading, setLoading] = useState(false);
+  const [countLoading, setCountLoading] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
   const handleOpenDialog = () => {
@@ -81,6 +89,54 @@ export default function ItemTableRow({
     }
   };
 
+  const handleOpenStockCountDialog = () => {
+    setOpenStockCountDialog(true);
+    setStockCount(stock.toString());
+  };
+
+  const handleCloseStockCountDialog = () => {
+    setOpenStockCountDialog(false);
+    setStockCount('');
+  };
+
+  const handleSetStockCount = async () => {
+    if (stockCount === '' || isNaN(Number(stockCount)) || Number(stockCount) < 0) {
+      enqueueSnackbar('Please enter a valid stock count (must be >= 0)', { variant: 'error' });
+      return;
+    }
+
+    const newCount = Number(stockCount);
+    if (newCount === stock) {
+      enqueueSnackbar('Stock count is the same as current stock. No changes needed.', { variant: 'info' });
+      handleCloseStockCountDialog();
+      return;
+    }
+
+    setCountLoading(true);
+    try {
+      const response = await updateStockApi(_id, newCount);
+      const missingAmount = response?.missingStock || 0;
+      
+      if (missingAmount > 0) {
+        enqueueSnackbar(
+          `Stock count updated! ${missingAmount} unit(s) marked as missing.`,
+          { variant: 'warning' }
+        );
+      } else {
+        enqueueSnackbar('Stock count updated successfully!', { variant: 'success' });
+      }
+      
+      handleCloseStockCountDialog();
+      if (onStockUpdate) {
+        onStockUpdate();
+      }
+    } catch (error: any) {
+      enqueueSnackbar(error?.response?.data?.message || 'Error updating stock count', { variant: 'error' });
+    } finally {
+      setCountLoading(false);
+    }
+  };
+
   return (
     <>
       <TableRow hover selected={selected}>
@@ -106,23 +162,59 @@ export default function ItemTableRow({
               size="small"
               onClick={handleOpenDialog}
               sx={{
-                backgroundColor: '#FF9800',
+                backgroundColor: 'primary.main',
                 color: '#ffffff',
                 width: 28,
                 height: 28,
                 '&:hover': {
-                  backgroundColor: '#F57C00',
+                  backgroundColor: 'primary.dark',
                 },
               }}
+              title="Add Stock"
             >
               <AddIcon fontSize="small" />
             </IconButton>
+            {stock > 0 && (
+              <IconButton
+                size="small"
+                onClick={() => setOpenStockOutDialog(true)}
+                sx={{
+                  backgroundColor: 'error.main',
+                  color: '#ffffff',
+                  width: 28,
+                  height: 28,
+                  '&:hover': {
+                    backgroundColor: 'error.dark',
+                  },
+                }}
+                title="Stock Out"
+              >
+                <RemoveIcon fontSize="small" />
+              </IconButton>
+            )}
+            <IconButton
+              size="small"
+              onClick={handleOpenStockCountDialog}
+              sx={{
+                backgroundColor: '#9c27b0',
+                color: '#ffffff',
+                width: 28,
+                height: 28,
+                '&:hover': {
+                  backgroundColor: '#7b1fa2',
+                },
+              }}
+              title="Set Stock Count (Physical Inventory)"
+            >
+              <InventoryIcon fontSize="small" />
+            </IconButton>
           </Stack>
         </TableCell>
-        <TableCell align="left">
+        <TableCell align="center">
           <IconButton
             aria-label="open"
             onClick={onEditRow}
+            size="small"
             sx={{
               backgroundColor: '#800000',
               color: '#ffffff',
@@ -162,6 +254,59 @@ export default function ItemTableRow({
           </Button>
           <Button onClick={handleAddStock} variant="contained" disabled={loading}>
             {loading ? 'Adding...' : 'Add Stock'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Stock Out Dialog */}
+      <StockOutDialog
+        open={openStockOutDialog}
+        onClose={() => setOpenStockOutDialog(false)}
+        itemId={_id}
+        itemName={itemName}
+        currentStock={stock}
+        onSuccess={() => {
+          if (onStockUpdate) {
+            onStockUpdate();
+          }
+        }}
+      />
+
+      {/* Set Stock Count Dialog */}
+      <Dialog open={openStockCountDialog} onClose={handleCloseStockCountDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Set Stock Count - {itemName}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Enter the actual physical stock count. If the count is less than the system's expected stock, 
+              the difference will be automatically recorded as missing stock.
+            </Alert>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              <strong>System Expected Stock:</strong> {stock} units
+            </Typography>
+            <TextField
+              fullWidth
+              label="Actual Stock Count"
+              type="number"
+              value={stockCount}
+              onChange={(e) => setStockCount(e.target.value)}
+              inputProps={{ min: 0 }}
+              helperText="Enter the actual physical count of items in stock"
+              autoFocus
+            />
+            {stockCount !== '' && !isNaN(Number(stockCount)) && Number(stockCount) < stock && (
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                <strong>Missing Stock Detected:</strong> {stock - Number(stockCount)} unit(s) will be marked as missing.
+              </Alert>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseStockCountDialog} disabled={countLoading}>
+            Cancel
+          </Button>
+          <Button onClick={handleSetStockCount} variant="contained" disabled={countLoading} color="primary">
+            {countLoading ? 'Updating...' : 'Update Stock Count'}
           </Button>
         </DialogActions>
       </Dialog>

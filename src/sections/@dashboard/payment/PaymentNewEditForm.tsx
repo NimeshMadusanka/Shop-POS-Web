@@ -28,8 +28,6 @@ import {
   Stack,
   Autocomplete,
   TextField,
-  Checkbox,
-  FormControlLabel,
 } from '@mui/material';
 // @types
 import { NewPaymentCreate } from '../../../@types/user';
@@ -141,7 +139,6 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
   const {
     control,
     reset,
-    setValue,
     watch,
     register,
     handleSubmit,
@@ -375,10 +372,8 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
       onClick={() =>
         append({ service: { _id: '', itemName: '', itemPrice: '' }, quantity: 1 })
       }
+      color="primary"
       sx={{
-        backgroundColor: '#FF9800',
-        color: '#ffffff',
-        '&:hover': { backgroundColor: '#F57C00' },
         width: 36,
         height: 36,
       }}
@@ -434,10 +429,8 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
             onClick={() =>
               append({ service: { _id: '', itemName: '', itemPrice: '' }, quantity: 1 })
             }
+            color="primary"
             sx={{
-              backgroundColor: '#FF9800',
-              color: '#ffffff',
-              '&:hover': { backgroundColor: '#F57C00' },
               width: 36,
               height: 36,
             }}
@@ -474,15 +467,11 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
                 type="submit"
                 variant="contained"
                 loading={isSubmitting}
+                color="primary"
                 sx={{
-                  backgroundColor: '#FF9800',
                   fontWeight: 500,
                   letterSpacing: 0,
                   opacity: 1,
-                  ':hover': {
-                    backgroundColor: '#FFB74D',
-                    color: '#ffffff',
-                  },
                 }}
               >
                 {!isEdit ? 'Create Sale' : 'Save Changes'}

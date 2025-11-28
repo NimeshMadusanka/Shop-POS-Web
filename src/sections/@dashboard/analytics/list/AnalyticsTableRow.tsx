@@ -46,7 +46,16 @@ export default function AnalyticsTableRow({ row }: Props) {
           style={{
             padding: '4px 8px',
             borderRadius: '4px',
-            backgroundColor: operationType === 'Stock-in' ? '#4caf50' : '#f44336',
+            backgroundColor:
+              operationType === 'Stock-in'
+                ? '#4caf50'
+                : operationType === 'refunded-stock-in'
+                  ? '#12501a'
+                  : operationType === 'Returning-stock-out'
+                    ? '#ff9800'
+                    : operationType === 'missing'
+                      ? '#9c27b0'
+                      : '#f44336',
             color: 'white',
             fontSize: '12px',
             fontWeight: 'bold',

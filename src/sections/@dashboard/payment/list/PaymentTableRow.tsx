@@ -13,13 +13,15 @@ import {
   Box,
   Grid,
   Divider,
+  Stack,
 } from '@mui/material';
 
 import PaymentIcon from '@mui/icons-material/Payment';
 import CloseIcon from '@mui/icons-material/Close';
-
+import EditIcon from '@mui/icons-material/Edit';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import { useState } from 'react';
+import ReturnStockDialog from './ReturnStockDialog';
 
 
 import jsPDF from 'jspdf';
@@ -32,6 +34,7 @@ type Props = {
   onEditRow: VoidFunction;
   onSelectRow: VoidFunction;
   onDeleteRow: VoidFunction;
+  onRefresh?: VoidFunction;
 };
 
 declare module 'jspdf' {
@@ -48,12 +51,13 @@ export default function PaymentTableRow({
   onSelectRow,
   onEditRow,
   onDeleteRow,
+  onRefresh,
 }: Props) {
   // Hooks must be called before any conditional returns
   const [open, setOpen] = useState(false);
   const [openPaidDialog, setOpenPaidDialog] = useState(false);
+  const [openReturnDialog, setOpenReturnDialog] = useState(false);
   const [cashInput, setCashInput] = useState('');
-  const [cash, setCash] = useState<number | ''>('');
   const [balance, setBalance] = useState<number | ''>('');
 
   // Safety checks for row data (after hooks)
@@ -61,7 +65,13 @@ export default function PaymentTableRow({
     return null;
   }
 
-  const { grandTotal, date, customerName, items, discount, cashPaid, wirePaid } = row;
+  const { grandTotal, date, invoiceNumber, items, discount, cashPaid, wirePaid, creditPaid, debitPaid, _id } = row;
+  
+  // Convert payment amounts to numbers for safe comparison
+  const cashPaidNum = Number(cashPaid || 0);
+  const creditPaidNum = Number(creditPaid || 0);
+  const debitPaidNum = Number(debitPaid || 0);
+  const wirePaidNum = Number(wirePaid || 0);
   
   // Safety checks for required fields
   if (!items || !Array.isArray(items)) {
@@ -98,14 +108,12 @@ export default function PaymentTableRow({
 
   const handleClear = () => {
     setCashInput('');
-    setCash('');
     setBalance('');
   };
 
   const handleEnter = () => {
     const value = parseFloat(cashInput);
     if (!isNaN(value) && grandTotal) {
-      setCash(value);
       setBalance(value - Number(grandTotal || 0));
     }
   };
@@ -140,11 +148,11 @@ export default function PaymentTableRow({
     doc.text('NO:14/R,Araliya Uyana, COLOMBO - 05', 10, 45);
     doc.text('Phone: 0112335828 / 0112441503', 10, 50);
 
-    // Optional: Invoice to
+    // Invoice Number (already shown at top, but can add here if needed)
     doc.setFont('helvetica', 'bold');
-    doc.text('Invoice to', 135, 35);
+    doc.text('Invoice No:', 135, 35);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Name: ${customerName}`, 135, 40);
+    doc.text(`${invoiceNumber || 'N/A'}`, 135, 40);
 
     // Divider
     doc.line(10, 60, 200, 60);
@@ -155,15 +163,16 @@ export default function PaymentTableRow({
     // Title
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Invoice - ${customerName}`, marginLeft, currentY);
+    doc.text(`Invoice - ${invoiceNumber || 'N/A'}`, marginLeft, currentY);
     currentY += 10;
 
     // Product Table
     autoTable(doc, {
       startY: currentY,
-      head: [['Product Name', 'Qty', 'Price', 'Total']],
+      head: [['Product Name', 'Brand', 'Qty', 'Price', 'Total']],
       body: items.map((item) => [
         item?.itemName || 'N/A',
+        item?.brandName || 'N/A',
         item?.quantity || 0,
         item?.itemPrice ? Number(item.itemPrice).toFixed(2) : '0.00',
         item?.quantity && item?.itemPrice ? (Number(item.quantity) * Number(item.itemPrice)).toFixed(2) : '0.00',
@@ -207,25 +216,53 @@ export default function PaymentTableRow({
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     const leftX = marginLeft;
-    const centerX = marginLeft + 45;
     const rightX = marginLeft + 90;
 
     doc.text(`Date: ${formattedDate ?? '--'}`, leftX, currentY);
-    doc.text('CASH', centerX, currentY);
-    doc.text(`Total Paid: ${grandTotal ? Number(grandTotal).toFixed(2) : '--'}`, rightX, currentY);
+    currentY += 6;
+
+    // Payment Methods
+    const totalCashPaid = cashPaidNum;
+    const totalCreditPaid = creditPaidNum;
+    const totalDebitPaid = debitPaidNum;
+    const totalWirePaid = wirePaidNum;
+
+    if (totalCashPaid > 0) {
+      doc.text(`Cash: ${totalCashPaid.toFixed(2)}`, leftX, currentY);
+      currentY += 6;
+    }
+    if (totalCreditPaid > 0) {
+      doc.text(`Credit Card: ${totalCreditPaid.toFixed(2)}`, leftX, currentY);
+      currentY += 6;
+    }
+    if (totalDebitPaid > 0) {
+      doc.text(`Debit Card: ${totalDebitPaid.toFixed(2)}`, leftX, currentY);
+      currentY += 6;
+    }
+    if (totalWirePaid > 0) {
+      doc.text(`Wire Transfer: ${totalWirePaid.toFixed(2)}`, leftX, currentY);
+      currentY += 6;
+    }
+
+    currentY += 2;
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Total Paid: ${(totalCashPaid + totalCreditPaid + totalDebitPaid + totalWirePaid).toFixed(2)}`, rightX, currentY, { align: 'right' });
 
     currentY += 8;
     doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
     doc.text('Balance:', rightX, currentY);
     const balanceLabelWidth = doc.getTextWidth('Balance:');
+    const totalPaid = totalCashPaid + totalCreditPaid + totalDebitPaid + totalWirePaid;
+    const calculatedBalance = totalPaid - Number(grandTotal || 0);
     doc.text(
-      typeof balance === 'number' ? balance.toFixed(2) : '--',
+      calculatedBalance.toFixed(2),
       rightX + balanceLabelWidth + 1,
       currentY
     );
 
     // Save PDF
-    doc.save(`invoice_${customerName}.pdf`);
+    doc.save(`invoice_${invoiceNumber || 'N/A'}.pdf`);
   };
 
   return (
@@ -233,39 +270,59 @@ export default function PaymentTableRow({
       <TableRow hover selected={selected}>
         <TableCell>
           <Typography variant="subtitle2" noWrap>
-            {customerName || 'N/A'}
+            {invoiceNumber || 'N/A'}
           </Typography>
         </TableCell>
         <TableCell align="left">{formattedDate}</TableCell>
         <TableCell align="left">{grandTotal ? Number(grandTotal).toFixed(2) : '0.00'}</TableCell>
-        <TableCell align="left">
-          <IconButton
-            onClick={handleOpen}
-            sx={{
-              backgroundColor: '#800000',
-              color: '#ffffff',
-              ':hover': {
-                backgroundColor: '#ffffff',
-                color: '#800000',
-              },
-            }}
-          >
-            <PaymentIcon />
-          </IconButton>
-           <IconButton
-    onClick={() => setOpenPaidDialog(true)}
-    sx={{
-      backgroundColor: '#004d99',
-      color: '#ffffff',
-      ml: 1,
-      ':hover': {
-        backgroundColor: '#ffffff',
-        color: '#004d99',
-      },
-    }}
-  >
-    <ReceiptIcon />
-  </IconButton>
+        <TableCell align="center">
+          <Stack direction="row" spacing={1} justifyContent="center">
+            <IconButton
+              onClick={handleOpen}
+              size="small"
+              sx={{
+                backgroundColor: '#800000',
+                color: '#ffffff',
+                ':hover': {
+                  backgroundColor: '#ffffff',
+                  color: '#800000',
+                },
+              }}
+              title="View Invoice"
+            >
+              <PaymentIcon />
+            </IconButton>
+            <IconButton
+              onClick={() => setOpenPaidDialog(true)}
+              size="small"
+              sx={{
+                backgroundColor: '#004d99',
+                color: '#ffffff',
+                ':hover': {
+                  backgroundColor: '#ffffff',
+                  color: '#004d99',
+                },
+              }}
+              title="Payment Details"
+            >
+              <ReceiptIcon />
+            </IconButton>
+            <IconButton
+              onClick={() => setOpenReturnDialog(true)}
+              size="small"
+              sx={{
+                backgroundColor: 'primary.main',
+                color: '#ffffff',
+                ':hover': {
+                  backgroundColor: '#ffffff',
+                  color: 'primary.main',
+                },
+              }}
+              title="Return Stock"
+            >
+              <EditIcon />
+            </IconButton>
+          </Stack>
         </TableCell>
       </TableRow>
 
@@ -285,17 +342,17 @@ export default function PaymentTableRow({
             <Divider sx={{ mb: 2 }} /> */}
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ backgroundColor: '#FF9800', height: 56 }}>
-                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: '#FF9800', fontSize: '15px' }}>
+                <TableRow sx={{ backgroundColor: 'primary.main', height: 56 }}>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: 'primary.main', fontSize: '15px' }}>
                     Product
                   </TableCell>
-                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: '#FF9800', fontSize: '15px' }}>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: 'primary.main', fontSize: '15px' }}>
                     Qty
                   </TableCell>
-                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: '#FF9800' , fontSize: '15px'}}>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: 'primary.main' , fontSize: '15px'}}>
                     Unit Price
                   </TableCell>
-                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: '#FF9800' , fontSize: '15px'}}>
+                  <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: 'primary.main' , fontSize: '15px'}}>
                     Total
                   </TableCell>
                 </TableRow>
@@ -323,7 +380,7 @@ export default function PaymentTableRow({
 
             <Divider sx={{ my: 3 }} />
 
-            <Typography variant="h6" gutterBottom sx={{ color: '#FF9800' }}>
+            <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
               Payment:
             </Typography>
 
@@ -360,25 +417,63 @@ export default function PaymentTableRow({
             </Grid>
 
             <Divider sx={{ my: 3 }} />
-            <Typography variant="h6" gutterBottom sx={{ color: '#FF9800' }}>
+            <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
               Payment Method:
             </Typography>
 
-            {/* Row for Date and Cash amount */}
+            {/* Row for Date */}
             <Grid container alignItems="center" sx={{ mb: 2 }}>
-              <Grid item xs={6}>
-                <Box display="flex" gap={2}>
-                  <Typography variant="body1" sx={{ marginLeft: '40px', fontSize: '15px', }}>
+              <Grid item xs={12}>
+                <Box display="flex" gap={2} sx={{ marginLeft: '40px' }}>
+                  <Typography variant="body1" sx={{ fontSize: '15px' }}>
                     Date: {formattedDate}
                   </Typography>
-                  <Typography variant="body1">CASH</Typography>
                 </Box>
               </Grid>
-              <Grid item xs={6}>
-                <Box display="flex" justifyContent="flex-end" pr={8}>
-                  <Typography variant="body1">{cash ? `${cash.toFixed(2)}` : '--'}</Typography>
-                </Box>
-              </Grid>
+            </Grid>
+
+            {/* Payment Methods */}
+            <Grid container spacing={1} sx={{ mb: 2, ml: 5 }}>
+              {cashPaidNum > 0 && (
+                <Grid item xs={12}>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body1" sx={{ fontSize: '15px' }}>Cash:</Typography>
+                    <Typography variant="body1" sx={{ fontSize: '15px', fontWeight: 600 }}>
+                      LKR {cashPaidNum.toFixed(2)}
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
+              {creditPaidNum > 0 && (
+                <Grid item xs={12}>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body1" sx={{ fontSize: '15px' }}>Credit Card:</Typography>
+                    <Typography variant="body1" sx={{ fontSize: '15px', fontWeight: 600 }}>
+                      LKR {creditPaidNum.toFixed(2)}
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
+              {debitPaidNum > 0 && (
+                <Grid item xs={12}>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body1" sx={{ fontSize: '15px' }}>Debit Card:</Typography>
+                    <Typography variant="body1" sx={{ fontSize: '15px', fontWeight: 600 }}>
+                      LKR {debitPaidNum.toFixed(2)}
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
+              {wirePaidNum > 0 && (
+                <Grid item xs={12}>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body1" sx={{ fontSize: '15px' }}>Wire Transfer:</Typography>
+                    <Typography variant="body1" sx={{ fontSize: '15px', fontWeight: 600 }}>
+                      LKR {wirePaidNum.toFixed(2)}
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
             </Grid>
 
             {/* Total Paid */}
@@ -417,7 +512,7 @@ export default function PaymentTableRow({
                   fontWeight: 600,
                   position: 'relative',
                   right: '80px',
-                  color: '#FF9800',
+                  color: 'primary.main',
                 }}
               >
                 Balance
@@ -427,7 +522,7 @@ export default function PaymentTableRow({
                 fontWeight={700}
                 color="primary"
                 sx={{
-                  color: '#FF9800',
+                  color: 'primary.main',
                 }}
               >
                 {typeof balance === 'number' ? `${balance.toFixed(2)}` : '--'}
@@ -512,10 +607,10 @@ export default function PaymentTableRow({
                   onClick={handleDownload}
                   sx={{
                     height: '80px',
-                    backgroundColor: '#FF9800',
+                    backgroundColor: 'primary.main',
                       fontSize: '18px', 
                     '&:hover': {
-                      backgroundColor: '#FFB74D',
+                      backgroundColor: 'primary.light',
                     },
                   }}
                 >
@@ -530,10 +625,10 @@ export default function PaymentTableRow({
                   onClick={handleEnter}
                   sx={{
                     height: '80px',
-                    backgroundColor: '#FF9800',
+                    backgroundColor: 'primary.main',
                     fontSize: '18px', 
                     '&:hover': {
-                      backgroundColor: '#FFB74D',
+                      backgroundColor: 'primary.light',
                     },
                   }}
                 >
@@ -584,13 +679,36 @@ export default function PaymentTableRow({
   </DialogTitle>
 
   <DialogContent dividers>
-    <Box display="flex" justifyContent="space-between" mb={1}>
-      <Typography variant="h6"sx={{ fontWeight: 'normal',fontSize: '0.4rem'  }}>CASH Paid:</Typography>
-      <Typography variant="h6"sx={{ fontWeight: 'normal' }}>LKR {Number(cashPaid).toLocaleString()}</Typography>
-    </Box>
-    <Box display="flex" justifyContent="space-between">
-      <Typography variant="h6"sx={{ fontWeight: 'normal' }}>WireTranfer Paid:</Typography>
-      <Typography variant="h6"sx={{ fontWeight: 'normal' }}>LKR {Number(wirePaid).toLocaleString()}</Typography>
+    {cashPaidNum > 0 && (
+      <Box display="flex" justifyContent="space-between" mb={1}>
+        <Typography variant="h6" sx={{ fontWeight: 'normal', fontSize: '1rem' }}>Cash Paid:</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 'normal' }}>LKR {cashPaidNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
+      </Box>
+    )}
+    {creditPaidNum > 0 && (
+      <Box display="flex" justifyContent="space-between" mb={1}>
+        <Typography variant="h6" sx={{ fontWeight: 'normal', fontSize: '1rem' }}>Credit Card Paid:</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 'normal' }}>LKR {creditPaidNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
+      </Box>
+    )}
+    {debitPaidNum > 0 && (
+      <Box display="flex" justifyContent="space-between" mb={1}>
+        <Typography variant="h6" sx={{ fontWeight: 'normal', fontSize: '1rem' }}>Debit Card Paid:</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 'normal' }}>LKR {debitPaidNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
+      </Box>
+    )}
+    {wirePaidNum > 0 && (
+      <Box display="flex" justifyContent="space-between" mb={1}>
+        <Typography variant="h6" sx={{ fontWeight: 'normal', fontSize: '1rem' }}>Wire Transfer Paid:</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 'normal' }}>LKR {wirePaidNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
+      </Box>
+    )}
+    <Divider sx={{ my: 2 }} />
+    <Box display="flex" justifyContent="space-between" mt={1}>
+      <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Total Paid:</Typography>
+      <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
+        LKR {(cashPaidNum + creditPaidNum + debitPaidNum + wirePaidNum).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </Typography>
     </Box>
   </DialogContent>
 </Dialog>
@@ -598,6 +716,24 @@ export default function PaymentTableRow({
 
 </Dialog>
 
+      {/* Return Stock Dialog */}
+      {_id && items && Array.isArray(items) && (
+        <ReturnStockDialog
+          open={openReturnDialog}
+          onClose={() => setOpenReturnDialog(false)}
+          paymentId={_id}
+          items={items.map((item) => ({
+            itemId: item.itemId?.toString() || '',
+            itemName: item.itemName || 'N/A',
+            quantity: item.quantity || 0,
+          }))}
+          onSuccess={() => {
+            if (onRefresh) {
+              onRefresh();
+            }
+          }}
+        />
+      )}
     </>
   );
 }

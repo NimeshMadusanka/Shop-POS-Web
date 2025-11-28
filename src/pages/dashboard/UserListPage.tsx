@@ -54,7 +54,7 @@ const TABLE_HEAD = [
   { id: 'userName', label: 'User Name', align: 'left' },
   { id: 'email', label: 'Email', align: 'left' },
   { id: 'phoneNumber', label: 'Phone Number', align: 'left' },
-  { id: 'district', label: 'District', align: 'left' },
+  { id: 'emergencyPhoneNumber', label: 'Emergency Phone', align: 'left' },
   { id: 'status', label: 'Status', align: 'left' },
   { id: '' },
 ];
@@ -63,7 +63,6 @@ const TABLE_HEAD = [
 
 export default function UserListPage() {
   const {
-    dense,
     page,
     order,
     orderBy,
@@ -75,7 +74,6 @@ export default function UserListPage() {
     onSelectRow,
     //
     onSort,
-    onChangeDense,
     onChangePage,
     onChangeRowsPerPage,
   } = useTable({
@@ -105,7 +103,7 @@ export default function UserListPage() {
 
   const dataInPage = dataFiltered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  const denseHeight = dense ? 52 : 72;
+  const denseHeight = 72;
 
   const isFiltered = filterName !== '' || filterRole !== 'all' || filterStatus !== 'all';
 
@@ -214,7 +212,7 @@ export default function UserListPage() {
 
             <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
               <Scrollbar>
-                <Table size={dense ? 'small' : 'medium'} sx={{ minWidth: 800 }}>
+                <Table size="medium" sx={{ minWidth: 800 }}>
                   <TableHeadCustom
                     order={order}
                     orderBy={orderBy}
@@ -256,8 +254,6 @@ export default function UserListPage() {
               onPageChange={onChangePage}
               onRowsPerPageChange={onChangeRowsPerPage}
               //
-              dense={dense}
-              onChangeDense={onChangeDense}
             />
           </Card>
         )}

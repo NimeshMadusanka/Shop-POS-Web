@@ -1,39 +1,39 @@
-import { Stack, Typography } from '@mui/material';
-import { LoginText } from '../../components/logo';
+import { Stack, Typography, Box } from '@mui/material';
 import Image from '../../components/image';
-import PRSLogo from '../../assets/logo.svg';
+import EssentialsLogo from '../../assets/ESSENTIALS.png';
 import LoginLayout from '../../layouts/login';
 import AuthLoginForm from './AuthLoginForm';
 
 export default function Login() {
   return (
     <LoginLayout>
-      <Stack spacing={2} sx={{ mb: 5, position: 'relative' }}>
+      <Stack 
+        spacing={2} 
+        sx={{ 
+          mb: 3, 
+          position: 'relative',
+          width: '100%',
+          maxWidth: '100%',
+          overflow: 'hidden',
+        }}
+      >
         <Image
           disabledEffect
           visibleByDefault
           alt="auth"
-          src={PRSLogo}
+          src={EssentialsLogo}
           sx={{
-            width: { lg: 120, md: 100, sm: 90, xs: 80 },
-            mb: { lg: 6, md: 4, sm: 3, xs: 2 },
+            width: { lg: 100, md: 90, sm: 80, xs: 70 },
+            mb: { lg: 1.5, md: 1.5, sm: 1, xs: 1 },
             height: 'auto',
             alignSelf: 'center',
           }}
         />
-        <Typography variant="h4">Login</Typography>
+        <Typography variant="h4" sx={{ textAlign: 'center' }}>Login</Typography>
       </Stack>
-      <AuthLoginForm />
-      <LoginText
-        sx={{
-          zIndex: 9,
-          position: 'absolute',
-          bottom: 0,
-          color: '#FF9800',
-          mb: { xs: 1.5, md: 3 },
-          mr: { xs: 2, md: 5 },
-        }}
-      />
+      <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'auto' }}>
+        <AuthLoginForm />
+      </Box>
     </LoginLayout>
   );
 }

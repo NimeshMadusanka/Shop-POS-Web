@@ -19,7 +19,6 @@ export const ForgotPasswordForm = Loadable(
   lazy(() => import('../sections/auth/ForgotPasswordForm'))
 );
 export const ChangePassword = Loadable(lazy(() => import('../sections/auth/ChangePassword')));
-export const SignUpPage = Loadable(lazy(() => import('../pages/auth/SignUpPage')));
 export const VerifyCodePage = Loadable(lazy(() => import('../pages/auth/VerifyCodePage')));
 
 // CompanyCreationForm
@@ -98,7 +97,19 @@ export const PaymentCreatePage = Loadable(
 );
 export const PaymentListPage = Loadable(lazy(() => import('../pages/dashboard/PaymentListPage')));
 export const PaymentEditPage = Loadable(lazy(() => import('../pages/dashboard/PaymentEditPage')));
+export const CashierPage = Loadable(lazy(() => import('../pages/dashboard/CashierPage')));
 export const AnalyticsPage = Loadable(lazy(() => import('../pages/dashboard/AnalyticsPage')));
+export const SalesReportPage = Loadable(lazy(() => import('../pages/dashboard/SalesReportPage')));
+export const EmailReportPage = Loadable(lazy(() => import('../pages/dashboard/EmailReportPage')));
+export const BrandListPage = Loadable(lazy(() => import('../pages/dashboard/BrandListPage')));
+export const BrandCreatePage = Loadable(lazy(() => import('../pages/dashboard/BrandCreatePage')));
+export const BrandEditPage = Loadable(lazy(() => import('../pages/dashboard/BrandEditPage')));
+export const ProviderListPage = Loadable(lazy(() => import('../pages/dashboard/ProviderListPage')));
+export const ProviderCreatePage = Loadable(lazy(() => import('../pages/dashboard/ProviderCreatePage')));
+export const ProviderEditPage = Loadable(lazy(() => import('../pages/dashboard/ProviderEditPage')));
+export const ShopListPage = Loadable(lazy(() => import('../pages/dashboard/ShopListPage')));
+export const ShopCreatePage = Loadable(lazy(() => import('../pages/dashboard/ShopCreatePage')));
+export const ShopEditPage = Loadable(lazy(() => import('../pages/dashboard/ShopEditPage')));
 export const CardViewPage = Loadable(lazy(() => import('../pages/dashboard/CardViewPage')));
 export const WiretransferCreatePage = Loadable(lazy(() => import('../pages/dashboard/WireTranserCreatePage')));
 export const PayRunListPage = Loadable(lazy(() => import('../pages/dashboard/PayrunListPage')));
