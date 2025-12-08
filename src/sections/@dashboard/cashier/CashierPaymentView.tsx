@@ -78,7 +78,7 @@ export default function CashierPaymentView() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Item | null>(null);
   const [quantity, setQuantity] = useState<string>('');
-  const [billDiscountPercentage, setBillDiscountPercentage] = useState<number>(0);
+  const [billDiscountPercentage, setBillDiscountPercentage] = useState<number | ''>(0);
   const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
   const [openRefundDialog, setOpenRefundDialog] = useState(false);
   const [openPinDialog, setOpenPinDialog] = useState(false);
@@ -137,7 +137,8 @@ export default function CashierPaymentView() {
     });
 
     const subtotalAfterItemDiscount = subtotal - itemDiscount;
-    const billDiscountAmount = (subtotalAfterItemDiscount * billDiscountPercentage) / 100;
+    const billDiscountAmount =
+      (subtotalAfterItemDiscount * (Number(billDiscountPercentage) || 0)) / 100;
     const grandTotal = subtotalAfterItemDiscount - billDiscountAmount;
     const totalDiscount = itemDiscount + billDiscountAmount;
 
@@ -286,14 +287,15 @@ export default function CashierPaymentView() {
       });
 
       const subtotalAfterItemDiscount = subtotal - itemDiscount;
-      const billDiscountAmount = (subtotalAfterItemDiscount * billDiscountPercentage) / 100;
+      const billDiscountAmount =
+        (subtotalAfterItemDiscount * (Number(billDiscountPercentage) || 0)) / 100;
       const grandTotal = subtotalAfterItemDiscount - billDiscountAmount;
 
       const payload: any = {
         items: formattedItems,
         addLoyalty: false,
         newoffPercentage: 0,
-        billDiscountPercentage: billDiscountPercentage || 0,
+        billDiscountPercentage: Number(billDiscountPercentage) || 0,
         date: new Date().toISOString().split('T')[0],
         companyID,
         cashPaid: finalCashPaid,
@@ -320,7 +322,7 @@ export default function CashierPaymentView() {
         grandTotal: grandTotal,
         discount: itemDiscount,
         billDiscountAmount: billDiscountAmount,
-        billDiscountPercentage: billDiscountPercentage || 0,
+        billDiscountPercentage: Number(billDiscountPercentage) || 0,
         items: formattedItems, // Already includes offPercentage
       };
 
@@ -615,7 +617,15 @@ export default function CashierPaymentView() {
               label="Bill Discount (%)"
               type="number"
               value={billDiscountPercentage}
-              onChange={(e) => setBillDiscountPercentage(Number(e.target.value) || 0)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '') {
+                  setBillDiscountPercentage('');
+                  return;
+                }
+                const num = Number(value);
+                setBillDiscountPercentage(Number.isNaN(num) ? 0 : num);
+              }}
               inputProps={{ min: 0, max: 100, step: 0.01 }}
               helperText="Apply discount to entire bill after item discounts"
             />

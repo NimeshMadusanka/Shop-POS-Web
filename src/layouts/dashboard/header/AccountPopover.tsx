@@ -15,15 +15,11 @@ import { IconButtonAnimate } from '../../../components/animate';
 
 // ----------------------------------------------------------------------
 
-const OPTIONS = [
+const OPTIONS_ADMIN = [
   {
     label: 'Home',
     linkTo: '/',
   },
-  // {
-  //   label: 'Profile',
-  //   linkTo: PATH_DASHBOARD.user.profile,
-  // },
   {
     label: 'Settings',
     linkTo: PATH_DASHBOARD.user.account,
@@ -66,6 +62,8 @@ export default function AccountPopover() {
     navigate(path);
   };
 
+  const options = user?.role === 'cashier' ? [] : OPTIONS_ADMIN;
+
   return (
     <>
       <IconButtonAnimate
@@ -102,13 +100,15 @@ export default function AccountPopover() {
 
         <Divider sx={{ borderStyle: 'dashed' }} />
 
-        <Stack sx={{ p: 1 }}>
-          {OPTIONS.map((option) => (
-            <MenuItem key={option.label} onClick={() => handleClickItem(option.linkTo)}>
-              {option.label}
-            </MenuItem>
-          ))}
-        </Stack>
+        {options.length > 0 && (
+          <Stack sx={{ p: 1 }}>
+            {options.map((option) => (
+              <MenuItem key={option.label} onClick={() => handleClickItem(option.linkTo)}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Stack>
+        )}
 
         <Divider sx={{ borderStyle: 'dashed' }} />
 
