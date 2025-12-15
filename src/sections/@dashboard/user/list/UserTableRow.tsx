@@ -27,22 +27,41 @@ export default function UserTableRow({
   onSelectRow,
   onDeleteRow,
 }: Props) {
-  const { userName, email, phoneNumber, emergencyPhoneNumber, status } = row;
+  const {
+    userName,
+    firstName,
+    lastName,
+    email,
+    phoneNumber,
+    emergencyPhoneNumber,
+    emergencyContactNumber,
+    status,
+  } = row as any;
+
+  const displayName =
+    userName ||
+    [firstName, lastName].filter(Boolean).join(' ').trim() ||
+    email ||
+    '';
+
+  const displayEmergency =
+    emergencyPhoneNumber ||
+    emergencyContactNumber ||
+    '';
 
   return (
       <TableRow hover selected={selected}>
         <TableCell>
           <Stack direction="row" alignItems="center" spacing={2}>
-
             <Typography variant="subtitle2" noWrap>
-              {userName}
+              {displayName}
             </Typography>
           </Stack>
         </TableCell>
 
         <TableCell align="left">{email}</TableCell>
         <TableCell align="left">{phoneNumber}</TableCell>
-        <TableCell align="left">{emergencyPhoneNumber}</TableCell>
+        <TableCell align="left">{displayEmergency}</TableCell>
         <TableCell align="left">
           <Label
             variant="soft"

@@ -25,7 +25,10 @@ const StyledRoot = styled('div')(({ theme }) => ({
 export default function NavAccount() {
   const { user } = useAuthContext();
 
-  // const { user } = useAuthContext();
+  if (user?.role === 'cashier') {
+    return null;
+  }
+
   return (
     <Link component={RouterLink} to={PATH_DASHBOARD.user.account} underline="none" color="inherit">
       <StyledRoot>

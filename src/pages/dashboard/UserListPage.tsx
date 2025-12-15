@@ -288,9 +288,15 @@ function applyFilter({
   inputData = stabilizedThis.map((el) => el[0]);
 
   if (filterName) {
-    inputData = inputData.filter(
-      (user) => user.userName.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
-    );
+    inputData = inputData.filter((user) => {
+      const u = user as any;
+      const name =
+        u.userName ||
+        [u.firstName, u.lastName].filter(Boolean).join(' ').trim() ||
+        u.email ||
+        '';
+      return name.toLowerCase().includes(filterName.toLowerCase());
+    });
   }
 
   if (filterStatus !== 'all') {

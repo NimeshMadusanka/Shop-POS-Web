@@ -118,7 +118,6 @@ const navConfigAdmin = [
         path: PATH_DASHBOARD.payment.root,
         icon: ICONS.invoice,
         children: [
-          { title: 'New Sale', path: PATH_DASHBOARD.payment.new },
           { title: 'Sales History', path: PATH_DASHBOARD.payment.list },
         ],
       },

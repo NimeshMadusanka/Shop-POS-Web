@@ -37,12 +37,12 @@ const Logo = forwardRef<HTMLDivElement, LogoProps>(
         ref={ref}
         component="div"
         sx={{
-          width: { lg: 40, md: 35, sm: 30, xs: 0 },
+          width: { lg: 64, md: 56, sm: 48, xs: 40 },
           height: 'auto',
-          display: { lg: 'inline-flex', md: 'inline-flex', sm: 'none', xs: 'none' },
+          display: { lg: 'inline-flex', md: 'inline-flex', sm: 'inline-flex', xs: 'inline-flex' },
           alignSelf: { lg: 'left', md: 'left', sm: 'left', xs: 'left' },
-          justifyContent: 'center', 
-          alignItems: 'center',     
+          justifyContent: 'center',
+          alignItems: 'center',
           ...sx,
         }}
         {...other}

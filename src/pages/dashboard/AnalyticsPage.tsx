@@ -237,17 +237,29 @@ export default function AnalyticsPage() {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Summary', marginLeft, currentY);
-    currentY += 8;
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Total Stock-in Operations: ${stockInCount}`, marginLeft, currentY);
-    doc.text(`Total Stock-out Operations: ${stockOutCount}`, marginLeft + 80, currentY);
-    doc.text(`Total Missing Operations: ${missingCount}`, marginLeft + 160, currentY);
     currentY += 6;
-    doc.text(`Total Stock-in Amount: ${totalStockIn}`, marginLeft, currentY);
-    doc.text(`Total Stock-out Amount: ${totalStockOut}`, marginLeft + 80, currentY);
-    doc.text(`Total Missing Amount: ${totalMissing}`, marginLeft + 160, currentY);
+
+    const summaryRows = [
+      ['Total Stock-in Operations', stockInCount, 'Total Stock-out Operations', stockOutCount],
+      ['Total Stock-in Amount', totalStockIn, 'Total Stock-out Amount', totalStockOut],
+      ['Total Missing Operations', missingCount, 'Total Missing Amount', totalMissing],
+    ];
+
+    autoTable(doc, {
+      startY: currentY,
+      head: [['Metric', 'Value', 'Metric', 'Value']],
+      body: summaryRows,
+      theme: 'grid',
+      headStyles: { fillColor: [18, 80, 26] },
+      styles: { fontSize: 9, cellPadding: 2 },
+      columnStyles: {
+        0: { cellWidth: 50 },
+        1: { cellWidth: 20, halign: 'right' },
+        2: { cellWidth: 50 },
+        3: { cellWidth: 20, halign: 'right' },
+      },
+      margin: { left: marginLeft, right: marginLeft },
+    });
 
     // Generate filename based on filters
     let filename = `item_activity_analytics_${new Date().toISOString().split('T')[0]}`;
