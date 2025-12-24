@@ -21,10 +21,10 @@ export async function generateReceiptPDF(payment: ReceiptData) {
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const marginLeft = 20;
-  const marginRight = 20;
+  const marginLeft = 2;
+  const marginRight = 2;
   const contentWidth = pageWidth - marginLeft - marginRight;
-  let currentY = 20;
+  let currentY = 2;
 
   // Helper function to center text
   const centerText = (text: string, y: number) => {
@@ -54,8 +54,8 @@ export async function generateReceiptPDF(payment: ReceiptData) {
             ctx.drawImage(img, 0, 0);
             const imgData = canvas.toDataURL('image/png');
             
-            // Calculate logo dimensions (max width 50mm, maintain aspect ratio)
-            const maxWidth = 50;
+            // Calculate logo dimensions (max width 40mm, maintain aspect ratio)
+            const maxWidth = 40;
             const aspectRatio = img.width / img.height;
             const logoWidth = maxWidth;
             const logoHeight = maxWidth / aspectRatio;
@@ -65,7 +65,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
             
             // Add the image to PDF using base64 data
             doc.addImage(imgData, 'PNG', logoX, currentY, logoWidth, logoHeight);
-            currentY += logoHeight + 8; // Add spacing after logo
+            currentY += logoHeight + 6; // Add spacing after logo
           }
           resolve();
         } catch (error) {
@@ -93,32 +93,30 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   }
 
   // Store Name (centered, uppercase, bold)
-  doc.setFontSize(24);
+  doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
   const storeName = payment.shopInfo?.shopName?.toUpperCase() || 'YIVA ESSENTIALS';
   centerText(storeName, currentY);
-  currentY += 10;
+  currentY += 8;
 
   // Location (centered)
-  if (payment.shopInfo?.address) {
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    centerText(payment.shopInfo.address, currentY);
-    currentY += 6;
-  }
+  const address = payment.shopInfo?.address || 'Kale Beach Club, 110/4 Matara road, Ahangama';
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  centerText(address, currentY);
+  currentY += 5;
 
   // Contact Number (centered)
-  if (payment.shopInfo?.contactPhone) {
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    centerText(payment.shopInfo.contactPhone, currentY);
-    currentY += 8;
-  }
+  const contactPhone = payment.shopInfo?.contactPhone || '077 738 0555';
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  centerText(contactPhone, currentY);
+  currentY += 6;
 
   // Divider line
-  doc.setLineWidth(0.8);
-  doc.line(marginLeft, currentY, pageWidth - marginLeft, currentY);
-  currentY += 8;
+  doc.setLineWidth(0.5);
+  doc.line(marginLeft, currentY, pageWidth - marginRight, currentY);
+  currentY += 6;
 
   // Date and Time
   const now = new Date();
@@ -134,38 +132,38 @@ export async function generateReceiptPDF(payment: ReceiptData) {
     hour12: false,
   });
 
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text(`${dateStr} ${timeStr}`, marginLeft, currentY);
-  currentY += 6;
+  currentY += 5;
 
   // Cashier/Operator
   if (payment.cashierName) {
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Cashier: ${payment.cashierName}`, marginLeft, currentY);
-    currentY += 6;
+    currentY += 5;
   }
 
   // Transaction Number (Invoice Number)
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text(`No: ${payment.invoiceNumber || 'N/A'}`, marginLeft, currentY);
-  currentY += 8;
-
-  // Divider line
-  doc.setLineWidth(0.8);
-  doc.line(marginLeft, currentY, pageWidth - marginLeft, currentY);
   currentY += 6;
 
+  // Divider line
+  doc.setLineWidth(0.5);
+  doc.line(marginLeft, currentY, pageWidth - marginRight, currentY);
+  currentY += 5;
+
   // Itemized List Header
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   const colWidths = {
-    no: 15,
-    item: contentWidth - 15 - 30 - 30 - 30, // Remaining space after NO, QTY, PRICE, AMOUNT
-    qty: 30,
-    price: 30,
+    no: 12,
+    item: contentWidth - 12 - 25 - 25 - 30, // Remaining space after NO, QTY, PRICE, AMOUNT
+    qty: 25,
+    price: 25,
     amount: 30,
   };
   let xPos = marginLeft;
@@ -179,21 +177,21 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   doc.text('PRICE', xPos, currentY);
   xPos += colWidths.price;
   doc.text('AMOUNT', xPos, currentY);
-  currentY += 6;
+  currentY += 5;
 
   // Divider line under header
   doc.setLineWidth(0.5);
-  doc.line(marginLeft, currentY, pageWidth - marginLeft, currentY);
-  currentY += 5;
+  doc.line(marginLeft, currentY, pageWidth - marginRight, currentY);
+  currentY += 4;
 
   // Items
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   (payment.items || []).forEach((item: any, index: number) => {
     // Check if we need a new page
-    if (currentY > pageHeight - 80) {
+    if (currentY > pageHeight - 60) {
       doc.addPage();
-      currentY = 20;
+      currentY = 2;
     }
 
     const itemNo = index + 1;
@@ -212,21 +210,21 @@ export async function generateReceiptPDF(payment: ReceiptData) {
     
     // Product Code (if available, show below item name)
     if (item?.itemId) {
-      itemY += 5;
-      doc.setFontSize(9);
+      itemY += 4;
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'italic');
       const productCode = `*${String(item.itemId).slice(-8)}`;
       doc.text(productCode, xPos, itemY);
-      itemY += 5;
-      doc.setFontSize(10);
+      itemY += 4;
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
     } else {
-      itemY += 5;
+      itemY += 4;
     }
 
     // If item name wrapped to multiple lines, adjust position
     if (itemNameLines.length > 1) {
-      itemY += (itemNameLines.length - 1) * 5;
+      itemY += (itemNameLines.length - 1) * 4;
     }
 
     // QTY, PRICE, AMOUNT aligned to the right columns
@@ -245,14 +243,14 @@ export async function generateReceiptPDF(payment: ReceiptData) {
     xPos += colWidths.price;
     doc.text(itemTotalAfterDiscount, xPos, currentY);
     
-    currentY = Math.max(itemY, currentY + 5) + 3;
+    currentY = Math.max(itemY, currentY + 4) + 2;
   });
 
   // Divider line
-  currentY += 5;
-  doc.setLineWidth(0.8);
-  doc.line(marginLeft, currentY, pageWidth - marginLeft, currentY);
-  currentY += 8;
+  currentY += 4;
+  doc.setLineWidth(0.5);
+  doc.line(marginLeft, currentY, pageWidth - marginRight, currentY);
+  currentY += 6;
 
   // Calculate totals
   let itemSubtotal = 0;
@@ -272,14 +270,14 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   const netTotal = payment.grandTotal || (subtotalAfterItemDiscount - billDiscount);
 
   // Net Total
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.text('Net Total:', marginLeft, currentY);
   doc.text(netTotal.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
-  currentY += 8;
+  currentY += 6;
 
   // Payment Method
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   const cashPaid = (payment as any).cashPaid || 0;
   const creditPaid = (payment as any).creditPaid || 0;
@@ -304,27 +302,27 @@ export async function generateReceiptPDF(payment: ReceiptData) {
 
   doc.text('Payment Method:', marginLeft, currentY);
   doc.text(paymentMethod, pageWidth - marginRight, currentY, { align: 'right' });
-  currentY += 6;
+  currentY += 5;
 
   if (paymentMethod === 'CARD') {
     doc.text('Card Amount:', marginLeft, currentY);
     doc.text(paymentAmount.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
-    currentY += 6;
+    currentY += 5;
   } else if (paymentMethod === 'SPLIT') {
     if (cashPaid > 0) {
       doc.text('Cash:', marginLeft, currentY);
       doc.text(cashPaid.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
-      currentY += 6;
+      currentY += 5;
     }
     if (creditPaid > 0) {
       doc.text('Credit Card:', marginLeft, currentY);
       doc.text(creditPaid.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
-      currentY += 6;
+      currentY += 5;
     }
     if (debitPaid > 0) {
       doc.text('Debit Card:', marginLeft, currentY);
       doc.text(debitPaid.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
-      currentY += 6;
+      currentY += 5;
     }
   }
 
@@ -333,47 +331,47 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   const balance = totalPaid - netTotal;
   doc.text('Balance:', marginLeft, currentY);
   doc.text(balance.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
-  currentY += 8;
+  currentY += 6;
 
   // Discounts section (if any) - use calculated values
   const totalDiscount = itemDiscount + billDiscount;
 
   if (totalDiscount > 0) {
-    currentY += 5;
-    doc.setFontSize(12);
+    currentY += 4;
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     centerText('Discounts', currentY);
-    currentY += 6;
+    currentY += 5;
 
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     if (billDiscount > 0) {
       doc.text('* Bill Discount', marginLeft, currentY);
       doc.text(billDiscount.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
-      currentY += 6;
+      currentY += 5;
     }
     if (itemDiscount > 0) {
       doc.text('* Item Discount', marginLeft, currentY);
       doc.text(itemDiscount.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
-      currentY += 6;
+      currentY += 5;
     }
   }
 
   // Important Notice
-  currentY += 10;
-  doc.setFontSize(11);
+  currentY += 8;
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   centerText('-IMPORTANT NOTICE-', currentY);
-  currentY += 6;
+  currentY += 5;
 
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   const noticeText = 'In case of a price discrepancy, return the item & bill within 7 days to refund the difference';
   // Split notice text into multiple lines if needed
   const noticeLines = doc.splitTextToSize(noticeText, contentWidth);
   noticeLines.forEach((line: string) => {
     centerText(line, currentY);
-    currentY += 5;
+    currentY += 4;
   });
 
   return doc;

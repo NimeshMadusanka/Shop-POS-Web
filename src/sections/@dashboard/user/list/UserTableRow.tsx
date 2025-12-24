@@ -1,14 +1,19 @@
+import { useState } from 'react';
 // @mui
 import {
   Stack,
   TableRow,
   TableCell,
   Typography,
+  IconButton,
+  MenuItem,
+  Menu,
 } from '@mui/material';
 // @types
 import { NewUserCreate } from '../../../../@types/user';
 // components
 import Label from '../../../../components/label';
+import Iconify from '../../../../components/iconify';
 
 // ----------------------------------------------------------------------
 
@@ -36,7 +41,10 @@ export default function UserTableRow({
     emergencyPhoneNumber,
     emergencyContactNumber,
     status,
+    role,
   } = row as any;
+
+  const [openMenu, setOpenMenu] = useState<HTMLElement | null>(null);
 
   const displayName =
     userName ||
@@ -49,7 +57,21 @@ export default function UserTableRow({
     emergencyContactNumber ||
     '';
 
+  const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setOpenMenu(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setOpenMenu(null);
+  };
+
+  const handleDelete = () => {
+    onDeleteRow();
+    handleCloseMenu();
+  };
+
   return (
+    <>
       <TableRow hover selected={selected}>
         <TableCell>
           <Stack direction="row" alignItems="center" spacing={2}>
@@ -65,12 +87,50 @@ export default function UserTableRow({
         <TableCell align="left">
           <Label
             variant="soft"
-            color={(status === 'banned' && 'error') || 'success'}
+            color={(role === 'admin' && 'info') || 'default'}
             sx={{ textTransform: 'capitalize' }}
           >
-            {status}
+            {role || 'N/A'}
           </Label>
         </TableCell>
+        <TableCell align="left">
+          <Label
+            variant="soft"
+            color={(status === 'inactive' && 'error') || (status === 'active' && 'success') || 'default'}
+            sx={{ textTransform: 'capitalize' }}
+          >
+            {status || 'active'}
+          </Label>
+        </TableCell>
+        <TableCell align="right">
+          <IconButton onClick={handleOpenMenu}>
+            <Iconify icon="eva:more-vertical-fill" />
+          </IconButton>
+        </TableCell>
       </TableRow>
+
+      <Menu
+        open={Boolean(openMenu)}
+        anchorEl={openMenu}
+        onClose={handleCloseMenu}
+        anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuItem
+          onClick={() => {
+            onEditRow();
+            handleCloseMenu();
+          }}
+        >
+          <Iconify icon="eva:edit-fill" sx={{ mr: 2 }} />
+          Edit
+        </MenuItem>
+
+        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+          <Iconify icon="eva:trash-2-outline" sx={{ mr: 2 }} />
+          Delete
+        </MenuItem>
+      </Menu>
+    </>
   );
 }
