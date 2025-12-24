@@ -1,59 +1,63 @@
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { NewPaymentCreate } from '../../../@types/user';
 
 export function generateInvoicePDF(payment: NewPaymentCreate) {
-  // 70mm x 95mm thermal receipt
-  const doc = new jsPDF({
-    unit: 'mm',
-    format: [70, 95],
-  });
-  const marginLeft = 6;
+  const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  const contentWidth = pageWidth - marginLeft * 2;
-  let currentY = 8;
+  // Narrow margins for thermal receipt look
+  const marginLeft = 15;
+  const marginRight = 15;
+  const contentWidth = pageWidth - marginLeft - marginRight;
+  let currentY = 15;
 
-  // Invoice Number (prominently displayed)
+  // Invoice Number (prominently displayed in dark green, bold)
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(18, 80, 26); // Primary dark green
   const invoiceNumber = (payment as any).invoiceNumber || 'N/A';
   doc.text(`Invoice #: ${invoiceNumber}`, marginLeft, currentY);
-  currentY += 6;
+  currentY += 7;
 
   // Company Info
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
   doc.text('YIVA ESSENTIALS', marginLeft, currentY);
-  currentY += 4;
+  currentY += 6;
 
-  doc.setFontSize(8);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text('BR Reg No: WCO/02152', marginLeft, currentY);
-  currentY += 4;
+  currentY += 5;
   doc.text('NO:14/R, Araliya Uyana, COLOMBO - 05', marginLeft, currentY);
-  currentY += 4;
+  currentY += 5;
   doc.text('Phone: 0112335828 / 0112441503', marginLeft, currentY);
   currentY += 6;
 
-  // Date
-  doc.setFont('helvetica', 'bold');
-  doc.text('Date:', marginLeft, currentY);
+  // Date and Time (compact format: DD/MM/YYYY HH:MM:SS)
+  const paymentDate = payment.date ? new Date(payment.date) : new Date();
+  const dateStr = paymentDate.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+  const timeStr = paymentDate.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  const formattedDate = payment.date
-    ? new Date(payment.date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    : new Date().toLocaleDateString();
-  doc.text(formattedDate, marginLeft + 12, currentY);
+  doc.text(`${dateStr} ${timeStr}`, marginLeft, currentY);
   currentY += 6;
 
   // Divider
-  doc.line(marginLeft, currentY, marginLeft + contentWidth, currentY);
-  currentY += 4;
+  doc.setLineWidth(0.3);
+  doc.line(marginLeft, currentY, pageWidth - marginRight, currentY);
+  currentY += 6;
 
   // Product Table
   autoTable(doc, {
@@ -69,77 +73,90 @@ export function generateInvoicePDF(payment: NewPaymentCreate) {
         : '0.00',
     ]),
     theme: 'grid',
-    headStyles: { fillColor: [18, 80, 26] }, // Primary dark green
-    margin: { left: marginLeft, right: marginLeft },
-    styles: { fontSize: 7, cellPadding: 1 },
+    headStyles: { 
+      fillColor: [18, 80, 26], // Primary dark green
+      textColor: [255, 255, 255], // White text
+      fontStyle: 'bold',
+      fontSize: 9
+    },
+    margin: { left: marginLeft, right: marginRight },
+    styles: { 
+      fontSize: 9,
+      cellPadding: 2
+    },
     columnStyles: {
-      0: { cellWidth: 26 }, // Product
-      1: { cellWidth: 8 },  // Qty
-      2: { cellWidth: 10 }, // Price
-      3: { cellWidth: 10 }, // Discount
-      4: { cellWidth: 12 }, // Total
+      0: { halign: 'left' }, // Product - left aligned
+      1: { halign: 'right' }, // Qty - right aligned
+      2: { halign: 'right' }, // Price - right aligned
+      3: { halign: 'right' }, // Disc% - right aligned
+      4: { halign: 'right' }, // Total - right aligned
     },
     didDrawPage: (data) => {
-      currentY = (data.cursor?.y ?? currentY) + 6;
+      currentY = (data.cursor?.y ?? currentY) + 5;
     },
   });
 
-  // Payment Summary
+  // Divider
   currentY += 3;
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Payment Summary:', marginLeft, currentY);
-  currentY += 5;
-
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  const totalItems = payment.items?.length || 0;
-  const discount = payment.discount || 0;
-  const grandTotal = payment.grandTotal || 0;
-  const billDiscount = payment.billDiscountAmount || 0;
-
-  doc.text(`Total Items: ${totalItems}`, marginLeft, currentY);
-  currentY += 4;
-  doc.text(`Item Discount: ${discount.toFixed(2)}`, marginLeft, currentY);
-  currentY += 4;
-  if (billDiscount > 0) {
-    doc.text(`Bill Discount: ${billDiscount.toFixed(2)}`, marginLeft, currentY);
-    currentY += 4;
-  }
-  doc.text(`Grand Total: ${grandTotal.toFixed(2)}`, marginLeft, currentY);
+  doc.setLineWidth(0.3);
+  doc.line(marginLeft, currentY, pageWidth - marginRight, currentY);
   currentY += 6;
 
-  // Payment Methods
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Payment Method:', marginLeft, currentY);
-  currentY += 5;
-
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  const paymentMethods: string[] = [];
+  // Payment Summary (compact format - label left, value right on same line)
+  const grandTotal = payment.grandTotal || 0;
   const cashPaid = (payment as any).cashPaid || 0;
   const creditPaid = (payment as any).creditPaid || 0;
   const debitPaid = (payment as any).debitPaid || 0;
+  const totalPaid = cashPaid + creditPaid + debitPaid;
+  const balance = totalPaid - grandTotal;
 
-  if (cashPaid > 0) paymentMethods.push(`Cash: ${cashPaid.toFixed(2)}`);
-  if (creditPaid > 0) paymentMethods.push(`Credit Card: ${creditPaid.toFixed(2)}`);
-  if (debitPaid > 0) paymentMethods.push(`Debit Card: ${debitPaid.toFixed(2)}`);
-
-  if (paymentMethods.length > 0) {
-    doc.text(paymentMethods.join(', '), marginLeft, currentY);
-  } else {
-    doc.text('N/A', marginLeft, currentY);
+  // Determine payment method
+  let paymentMethod = 'CASH';
+  if (creditPaid > 0 || debitPaid > 0) {
+    if (cashPaid > 0) {
+      paymentMethod = 'SPLIT';
+    } else {
+      paymentMethod = 'CARD';
+    }
   }
 
-  // Footer
-  currentY = doc.internal.pageSize.height - 10;
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'italic');
-  doc.setTextColor(128, 128, 128);
-  doc.text('Thank you for your business!', marginLeft, currentY);
+  // Net Total (bold label, bold value)
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Net Total:', marginLeft, currentY);
+  doc.text(grandTotal.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
+  currentY += 6;
+
+  // Payment Method
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Payment Method:', marginLeft, currentY);
+  doc.text(paymentMethod, pageWidth - marginRight, currentY, { align: 'right' });
+  currentY += 6;
+
+  // Balance
+  doc.text('Balance:', marginLeft, currentY);
+  doc.text(balance.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
+  currentY += 10;
+
+  // Important Notice (centered)
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  const noticeTitle = '-IMPORTANT NOTICE-';
+  const noticeTitleWidth = doc.getTextWidth(noticeTitle);
+  doc.text(noticeTitle, (pageWidth - noticeTitleWidth) / 2, currentY);
+  currentY += 6;
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  const noticeText = 'In case of a price discrepancy, return the item & bill within 7 days to refund the difference';
+  const noticeLines = doc.splitTextToSize(noticeText, contentWidth);
+  noticeLines.forEach((line: string) => {
+    const lineWidth = doc.getTextWidth(line);
+    doc.text(line, (pageWidth - lineWidth) / 2, currentY);
+    currentY += 4;
+  });
 
   // Save PDF
   doc.save(`invoice_${invoiceNumber}.pdf`);
 }
-
