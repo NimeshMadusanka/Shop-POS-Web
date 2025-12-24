@@ -55,6 +55,7 @@ const TABLE_HEAD = [
   { id: 'email', label: 'Email', align: 'left' },
   { id: 'phoneNumber', label: 'Phone Number', align: 'left' },
   { id: 'emergencyPhoneNumber', label: 'Emergency Phone', align: 'left' },
+  { id: 'role', label: 'Role', align: 'left' },
   { id: 'status', label: 'Status', align: 'left' },
   { id: '' },
 ];

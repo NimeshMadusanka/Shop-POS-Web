@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -30,7 +30,7 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
   const [cashAmount, setCashAmount] = useState<string>('');
   const [creditAmount, setCreditAmount] = useState<string>('');
   const [debitAmount, setDebitAmount] = useState<string>('');
-  const [currentInput, setCurrentInput] = useState<string>('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Calculate totals and balance
   const calculations = useMemo(() => {
@@ -44,73 +44,45 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
   }, [cashAmount, creditAmount, debitAmount, grandTotal]);
 
   const handleNumberInput = (value: string) => {
-    if (paymentMethod === 'SPLIT') {
-      // For split, update currentInput and apply to active field
-      setCurrentInput((prev) => {
-        const newValue = prev === '0' ? value : prev + value;
-        return newValue;
-      });
-    } else {
-      // For single method, update directly
-      const current = paymentMethod === 'CASH' ? cashAmount : 
-                     paymentMethod === 'CREDIT' ? creditAmount : debitAmount;
-      const newValue = current === '0' || current === '' ? value : current + value;
-      
-      if (paymentMethod === 'CASH') setCashAmount(newValue);
-      else if (paymentMethod === 'CREDIT') setCreditAmount(newValue);
-      else setDebitAmount(newValue);
-    }
+    // For single method, update directly
+    const current = paymentMethod === 'CASH' ? cashAmount : 
+                   paymentMethod === 'CREDIT' ? creditAmount : debitAmount;
+    const newValue = current === '0' || current === '' ? value : current + value;
+    
+    if (paymentMethod === 'CASH') setCashAmount(newValue);
+    else if (paymentMethod === 'CREDIT') setCreditAmount(newValue);
+    else setDebitAmount(newValue);
   };
 
   const handleDecimal = () => {
-    if (paymentMethod === 'SPLIT') {
-      if (!currentInput.includes('.')) {
-        setCurrentInput((prev) => (prev || '0') + '.');
-      }
-    } else {
-      const current = paymentMethod === 'CASH' ? cashAmount : 
-                     paymentMethod === 'CREDIT' ? creditAmount : debitAmount;
-      if (!current.includes('.')) {
-        const newValue = (current || '0') + '.';
-        if (paymentMethod === 'CASH') setCashAmount(newValue);
-        else if (paymentMethod === 'CREDIT') setCreditAmount(newValue);
-        else setDebitAmount(newValue);
-      }
+    const current = paymentMethod === 'CASH' ? cashAmount : 
+                   paymentMethod === 'CREDIT' ? creditAmount : debitAmount;
+    if (!current.includes('.')) {
+      const newValue = (current || '0') + '.';
+      if (paymentMethod === 'CASH') setCashAmount(newValue);
+      else if (paymentMethod === 'CREDIT') setCreditAmount(newValue);
+      else setDebitAmount(newValue);
     }
   };
 
   const handleBackspace = () => {
-    if (paymentMethod === 'SPLIT') {
-      setCurrentInput((prev) => prev.slice(0, -1) || '0');
-    } else {
-      const current = paymentMethod === 'CASH' ? cashAmount : 
-                     paymentMethod === 'CREDIT' ? creditAmount : debitAmount;
-      const newValue = current.slice(0, -1) || '';
-      if (paymentMethod === 'CASH') setCashAmount(newValue);
-      else if (paymentMethod === 'CREDIT') setCreditAmount(newValue);
-      else setDebitAmount(newValue);
-    }
+    const current = paymentMethod === 'CASH' ? cashAmount : 
+                   paymentMethod === 'CREDIT' ? creditAmount : debitAmount;
+    const newValue = current.slice(0, -1) || '';
+    if (paymentMethod === 'CASH') setCashAmount(newValue);
+    else if (paymentMethod === 'CREDIT') setCreditAmount(newValue);
+    else setDebitAmount(newValue);
   };
 
   const handleClear = () => {
-    if (paymentMethod === 'SPLIT') {
-      setCurrentInput('0');
+    if (paymentMethod === 'CASH') setCashAmount('');
+    else if (paymentMethod === 'CREDIT') setCreditAmount('');
+    else if (paymentMethod === 'DEBIT') setDebitAmount('');
+    else if (paymentMethod === 'SPLIT') {
       setCashAmount('');
       setCreditAmount('');
       setDebitAmount('');
-    } else {
-      if (paymentMethod === 'CASH') setCashAmount('');
-      else if (paymentMethod === 'CREDIT') setCreditAmount('');
-      else setDebitAmount('');
     }
-  };
-
-  const handleApplyToSplit = (field: 'cash' | 'credit' | 'debit') => {
-    const value = parseFloat(currentInput) || 0;
-    if (field === 'cash') setCashAmount(value.toString());
-    else if (field === 'credit') setCreditAmount(value.toString());
-    else setDebitAmount(value.toString());
-    setCurrentInput('0');
   };
 
   const handleConfirm = () => {
@@ -135,7 +107,6 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
     setCashAmount('');
     setCreditAmount('');
     setDebitAmount('');
-    setCurrentInput('');
   };
 
   const handleClose = () => {
@@ -144,18 +115,21 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
     setCashAmount('');
     setCreditAmount('');
     setDebitAmount('');
-    setCurrentInput('');
     onClose();
   };
 
-  // Clear fields when dialog is closed
+  // Clear fields when dialog is closed and focus input when opened
   useEffect(() => {
     if (!open) {
       setPaymentMethod('CASH');
       setCashAmount('');
       setCreditAmount('');
       setDebitAmount('');
-      setCurrentInput('');
+    } else {
+      // Focus the input field when dialog opens
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   }, [open]);
 
@@ -172,7 +146,7 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
       <DialogContent>
         <Box sx={{ mt: 2 }}>
           <Typography variant="h6" gutterBottom>
-            Total Due: ${grandTotal.toFixed(2)}
+            Total Due: LKR {grandTotal.toFixed(2)}
           </Typography>
 
           {/* Payment Method Buttons */}
@@ -220,8 +194,13 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
                     fullWidth
                     label="Cash Amount"
                     value={cashAmount}
-                    InputProps={{ readOnly: true }}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setCashAmount(value);
+                    }}
                     variant="outlined"
+                    type="text"
+                    inputProps={{ inputMode: 'decimal' }}
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
@@ -229,8 +208,13 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
                     fullWidth
                     label="Credit Card Amount"
                     value={creditAmount}
-                    InputProps={{ readOnly: true }}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setCreditAmount(value);
+                    }}
                     variant="outlined"
+                    type="text"
+                    inputProps={{ inputMode: 'decimal' }}
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
@@ -238,44 +222,23 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
                     fullWidth
                     label="Debit Card Amount"
                     value={debitAmount}
-                    InputProps={{ readOnly: true }}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setDebitAmount(value);
+                    }}
                     variant="outlined"
+                    type="text"
+                    inputProps={{ inputMode: 'decimal' }}
                   />
                 </Grid>
               </Grid>
-              <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Current Input: {currentInput || '0'}
-                </Typography>
-                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => handleApplyToSplit('cash')}
-                  >
-                    Apply to Cash
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => handleApplyToSplit('credit')}
-                  >
-                    Apply to Credit
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => handleApplyToSplit('debit')}
-                  >
-                    Apply to Debit
-                  </Button>
-                </Stack>
-              </Box>
             </Box>
           ) : (
             <Box sx={{ mb: 3 }}>
               <TextField
+                inputRef={inputRef}
                 fullWidth
+                autoFocus
                 label={
                   paymentMethod === 'CASH'
                     ? 'Cash Amount'
@@ -290,8 +253,29 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
                     ? creditAmount
                     : debitAmount
                 }
-                InputProps={{ readOnly: true }}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9.]/g, '');
+                  // Prevent multiple decimal points
+                  const parts = value.split('.');
+                  const sanitized = parts.length > 2 
+                    ? parts[0] + '.' + parts.slice(1).join('')
+                    : value;
+                  
+                  if (paymentMethod === 'CASH') setCashAmount(sanitized);
+                  else if (paymentMethod === 'CREDIT') setCreditAmount(sanitized);
+                  else setDebitAmount(sanitized);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && calculations.totalPaid >= grandTotal) {
+                    handleConfirm();
+                  } else if (e.key === 'Escape') {
+                    handleClose();
+                  }
+                }}
                 variant="outlined"
+                type="text"
+                inputProps={{ inputMode: 'decimal' }}
+                placeholder="0.00"
               />
             </Box>
           )}
@@ -360,13 +344,13 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
               Payment Summary
             </Typography>
             <Typography variant="body1">
-              Total Paid: ${calculations.totalPaid.toFixed(2)}
+              Total Paid: LKR {calculations.totalPaid.toFixed(2)}
             </Typography>
             <Typography
               variant="body1"
               color={calculations.balance >= 0 ? 'success.main' : 'error.main'}
             >
-              Balance: ${calculations.balance.toFixed(2)}
+              Balance: LKR {calculations.balance.toFixed(2)}
             </Typography>
           </Box>
         </Box>

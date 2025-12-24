@@ -4,6 +4,7 @@ import { paramCase } from 'change-case';
 // @mui
 import { Card, Table, Divider, TableBody, Container, TableContainer, Tabs, Tab } from '@mui/material';
 import { getItemData, getDiscontinuedItemsApi } from 'src/api/ItemApi';
+import { getBrandData } from 'src/api/BrandApi';
 // routes
 import { PATH_DASHBOARD } from '../../routes/paths';
 // @types
@@ -83,6 +84,7 @@ export default function PaymentListPage() {
 
   const navigate = useNavigate();
   const [tableData, setTableData] = useState([]);
+  const [brandData, setBrandData] = useState<any[]>([]);
 
   const [filterName, setFilterName] = useState('');
 
@@ -90,6 +92,7 @@ export default function PaymentListPage() {
   const { user } = useAuthContext();
 
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterBrand, setFilterBrand] = useState<any>(null);
 
   const dataFiltered = applyFilter({
     inputData: tableData,
@@ -97,13 +100,14 @@ export default function PaymentListPage() {
     filterName,
     filterRole,
     filterStatus,
+    filterBrand,
   });
 
   const dataInPage = dataFiltered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const denseHeight = 72;
 
-  const isFiltered = filterName !== '' || filterRole !== 'all' || filterStatus !== 'all';
+  const isFiltered = filterName !== '' || filterRole !== 'all' || filterStatus !== 'all' || filterBrand !== null;
 
   const isNotFound =
     (!dataFiltered.length && !!filterName) ||
@@ -141,10 +145,16 @@ export default function PaymentListPage() {
     loadData();
   };
 
+  const handleFilterBrand = (event: any, newValue: any) => {
+    setPage(0);
+    setFilterBrand(newValue);
+  };
+
   const handleResetFilter = () => {
     setFilterName('');
     setFilterRole('all');
     setFilterStatus('all');
+    setFilterBrand(null);
   };
 
   const [dataLoad, setDataLoad] = useState(false);
@@ -161,6 +171,11 @@ export default function PaymentListPage() {
       // Load regular items for tabs 0 and 1
       const data = await getItemData(companyID);
       setTableData(data);
+    }
+    // Load brand data
+    if (companyID) {
+      const brands = await getBrandData(companyID);
+      setBrandData(brands);
     }
     setDataLoad(false);
   }, [user?.companyID, currentTab]);
@@ -205,9 +220,12 @@ export default function PaymentListPage() {
                     isFiltered={isFiltered}
                     filterName={filterName}
                     filterRole={filterRole}
+                    filterBrand={filterBrand}
                     optionsRole={ROLE_OPTIONS}
+                    brandOptions={brandData}
                     onFilterName={handleFilterName}
                     onFilterRole={handleFilterRole}
+                    onFilterBrand={handleFilterBrand}
                     onResetFilter={handleResetFilter}
                   />
 
@@ -270,9 +288,12 @@ export default function PaymentListPage() {
                     isFiltered={isFiltered}
                     filterName={filterName}
                     filterRole={filterRole}
+                    filterBrand={filterBrand}
                     optionsRole={ROLE_OPTIONS}
+                    brandOptions={brandData}
                     onFilterName={handleFilterName}
                     onFilterRole={handleFilterRole}
+                    onFilterBrand={handleFilterBrand}
                     onResetFilter={handleResetFilter}
                   />
 
@@ -338,9 +359,12 @@ export default function PaymentListPage() {
                     isFiltered={isFiltered}
                     filterName={filterName}
                     filterRole={filterRole}
+                    filterBrand={filterBrand}
                     optionsRole={ROLE_OPTIONS}
+                    brandOptions={brandData}
                     onFilterName={handleFilterName}
                     onFilterRole={handleFilterRole}
+                    onFilterBrand={handleFilterBrand}
                     onResetFilter={handleResetFilter}
                   />
 
@@ -410,12 +434,14 @@ function applyFilter({
   filterName,
   filterStatus,
   filterRole,
+  filterBrand,
 }: {
   inputData: NewItemCreate[];
   comparator: (a: any, b: any) => number;
   filterName: string;
   filterStatus: string;
   filterRole: string;
+  filterBrand: any;
 }) {
   const stabilizedThis = inputData.map((el, index) => [el, index] as const);
 
@@ -433,6 +459,12 @@ function applyFilter({
         payment &&
         payment.itemName &&
         payment.itemName.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
+    );
+  }
+
+  if (filterBrand) {
+    inputData = inputData.filter(
+      (item) => item && (item as any).brandId && (item as any).brandId === filterBrand._id
     );
   }
 

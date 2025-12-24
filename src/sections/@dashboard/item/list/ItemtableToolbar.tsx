@@ -1,27 +1,38 @@
 // @mui
-import { Stack, InputAdornment, TextField, Button } from '@mui/material';
+import { Stack, InputAdornment, TextField, Button, Autocomplete } from '@mui/material';
 // components
 import Iconify from '../../../../components/iconify';
 
 // ----------------------------------------------------------------------
 
+type Brand = {
+  _id: string;
+  brandName: string;
+};
+
 type Props = {
   filterName: string;
   filterRole: string;
+  filterBrand: Brand | null;
   isFiltered: boolean;
   optionsRole: string[];
+  brandOptions: Brand[];
   onResetFilter: VoidFunction;
   onFilterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onFilterRole: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onFilterBrand: (event: any, newValue: Brand | null) => void;
 };
 
-export default function UserTableToolbar({
+export default function ItemtableToolbar({
   isFiltered,
   filterName,
   filterRole,
+  filterBrand,
   optionsRole,
+  brandOptions,
   onFilterName,
   onFilterRole,
+  onFilterBrand,
   onResetFilter,
 }: Props) {
   return (
@@ -39,7 +50,7 @@ export default function UserTableToolbar({
         fullWidth
         value={filterName}
         onChange={onFilterName}
-        placeholder="Search..."
+        placeholder="Search product..."
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
@@ -47,6 +58,32 @@ export default function UserTableToolbar({
             </InputAdornment>
           ),
         }}
+      />
+
+      <Autocomplete
+        fullWidth
+        options={brandOptions}
+        getOptionLabel={(option) => option?.brandName || ''}
+        value={filterBrand}
+        onChange={onFilterBrand}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            placeholder="Filter by brand..."
+            InputProps={{
+              ...params.InputProps,
+              startAdornment: (
+                <>
+                  <InputAdornment position="start">
+                    <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
+                  </InputAdornment>
+                  {params.InputProps.startAdornment}
+                </>
+              ),
+            }}
+          />
+        )}
+        sx={{ minWidth: 200 }}
       />
 
       {isFiltered && (

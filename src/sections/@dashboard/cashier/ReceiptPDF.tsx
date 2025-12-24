@@ -100,20 +100,18 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   currentY += 8;
 
   // Location (centered)
-  if (payment.shopInfo?.address) {
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    centerText(payment.shopInfo.address, currentY);
-    currentY += 5;
-  }
+  const address = payment.shopInfo?.address || 'Kale Beach Club, 110/4 Matara road, Ahangama';
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  centerText(address, currentY);
+  currentY += 5;
 
   // Contact Number (centered)
-  if (payment.shopInfo?.contactPhone) {
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    centerText(payment.shopInfo.contactPhone, currentY);
-    currentY += 6;
-  }
+  const contactPhone = payment.shopInfo?.contactPhone || '077 738 0555';
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  centerText(contactPhone, currentY);
+  currentY += 6;
 
   // Divider line
   doc.setLineWidth(0.5);
