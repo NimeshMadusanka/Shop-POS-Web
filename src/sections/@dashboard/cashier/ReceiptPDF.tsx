@@ -14,17 +14,32 @@ interface ReceiptData extends NewPaymentCreate {
 }
 
 export async function generateReceiptPDF(payment: ReceiptData) {
+  /**
+   * Receipt PDF Dimensions:
+   * - Width: 80mm (standard thermal receipt printer width, equivalent to 3 inches)
+   * - Height: Auto-expanding (starts at 297mm, adds pages as needed)
+   * - Margins: 5mm on all sides (left, right, top, bottom)
+   * - Content Width: 70mm (80mm - 5mm left - 5mm right)
+   * 
+   * This format is optimized for standard thermal receipt printers
+   * that use 80mm wide paper rolls.
+   */
+  const receiptWidth = 80; // 80mm = standard receipt printer width (3 inches)
+  const receiptHeight = 297; // Start with A4 height, will auto-expand if needed
+  
   const doc = new jsPDF({
-    format: 'a4', // A4 size
+    format: [receiptWidth, receiptHeight], // Custom size: 80mm x 297mm
     unit: 'mm',
   });
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const marginLeft = 2;
-  const marginRight = 2;
-  const contentWidth = pageWidth - marginLeft - marginRight;
-  let currentY = 2;
+  const pageWidth = doc.internal.pageSize.getWidth(); // Should be 80mm
+  const pageHeight = doc.internal.pageSize.getHeight(); // Auto-expanding
+  const marginLeft = 5; // 5mm left margin (standard for receipts)
+  const marginRight = 5; // 5mm right margin
+  const marginTop = 5; // 5mm top margin
+  const marginBottom = 5; // 5mm bottom margin
+  const contentWidth = pageWidth - marginLeft - marginRight; // 70mm content width
+  let currentY = marginTop; // Start from top margin
 
   // Helper function to center text
   const centerText = (text: string, y: number) => {
@@ -54,11 +69,11 @@ export async function generateReceiptPDF(payment: ReceiptData) {
             ctx.drawImage(img, 0, 0);
             const imgData = canvas.toDataURL('image/png');
             
-            // Calculate logo dimensions (max width 40mm, maintain aspect ratio)
-            const maxWidth = 40;
+            // Calculate logo dimensions (max width 50mm to fit receipt, maintain aspect ratio)
+            const maxWidth = 50; // Adjusted for 80mm receipt width
             const aspectRatio = img.width / img.height;
-            const logoWidth = maxWidth;
-            const logoHeight = maxWidth / aspectRatio;
+            const logoWidth = Math.min(maxWidth, contentWidth - 10); // Ensure it fits with margins
+            const logoHeight = logoWidth / aspectRatio;
             
             // Center the logo horizontally
             const logoX = (pageWidth - logoWidth) / 2;
@@ -93,18 +108,27 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   }
 
   // Store Name (centered, uppercase, bold)
-  doc.setFontSize(20);
+  doc.setFontSize(16); // Reduced from 20 to fit receipt width
   doc.setFont('helvetica', 'bold');
   const storeName = payment.shopInfo?.shopName?.toUpperCase() || 'YIVA ESSENTIALS';
-  centerText(storeName, currentY);
-  currentY += 8;
+  // Split long store names if needed
+  const storeNameLines = doc.splitTextToSize(storeName, contentWidth);
+  storeNameLines.forEach((line: string) => {
+    centerText(line, currentY);
+    currentY += 5;
+  });
+  currentY += 3;
 
-  // Location (centered)
+  // Location (centered, wrapped if needed)
   const address = payment.shopInfo?.address || 'Kale Beach Club, 110/4 Matara road, Ahangama';
-  doc.setFontSize(10);
+  doc.setFontSize(9); // Slightly reduced
   doc.setFont('helvetica', 'normal');
-  centerText(address, currentY);
-  currentY += 5;
+  const addressLines = doc.splitTextToSize(address, contentWidth);
+  addressLines.forEach((line: string) => {
+    centerText(line, currentY);
+    currentY += 4;
+  });
+  currentY += 2;
 
   // Contact Number (centered)
   const contactPhone = payment.shopInfo?.contactPhone || '077 738 0555';
@@ -157,14 +181,15 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   currentY += 5;
 
   // Itemized List Header
-  doc.setFontSize(11);
+  // Adjusted column widths for 80mm receipt (70mm content width)
+  doc.setFontSize(9); // Reduced from 11
   doc.setFont('helvetica', 'bold');
   const colWidths = {
-    no: 12,
-    item: contentWidth - 12 - 25 - 25 - 30, // Remaining space after NO, QTY, PRICE, AMOUNT
-    qty: 25,
-    price: 25,
-    amount: 30,
+    no: 8, // Reduced from 12
+    item: contentWidth - 8 - 12 - 20 - 20, // Remaining space: 70 - 8 - 12 - 20 - 20 = 10mm for item name
+    qty: 12, // Reduced from 25
+    price: 20, // Reduced from 25
+    amount: 20, // Reduced from 30
   };
   let xPos = marginLeft;
 
@@ -185,13 +210,13 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   currentY += 4;
 
   // Items
-  doc.setFontSize(9);
+  doc.setFontSize(8); // Reduced from 9 for better fit
   doc.setFont('helvetica', 'normal');
   (payment.items || []).forEach((item: any, index: number) => {
     // Check if we need a new page
-    if (currentY > pageHeight - 60) {
-      doc.addPage();
-      currentY = 2;
+    if (currentY > pageHeight - marginBottom - 40) {
+      doc.addPage([receiptWidth, receiptHeight]);
+      currentY = marginTop;
     }
 
     const itemNo = index + 1;
@@ -203,7 +228,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
 
     // ITEM (wrap if too long)
     const itemName = item?.itemName || 'N/A';
-    const maxItemWidth = colWidths.item - 5;
+    const maxItemWidth = colWidths.item; // Use full column width
     const itemNameLines = doc.splitTextToSize(itemName, maxItemWidth);
     doc.text(itemNameLines[0], xPos, currentY);
     let itemY = currentY;
@@ -270,11 +295,11 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   const netTotal = payment.grandTotal || (subtotalAfterItemDiscount - billDiscount);
 
   // Net Total
-  doc.setFontSize(11);
+  doc.setFontSize(10); // Reduced from 11
   doc.setFont('helvetica', 'bold');
   doc.text('Net Total:', marginLeft, currentY);
   doc.text(netTotal.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
-  currentY += 6;
+  currentY += 5;
 
   // Payment Method
   doc.setFontSize(10);
@@ -358,21 +383,24 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   }
 
   // Important Notice
-  currentY += 8;
-  doc.setFontSize(10);
+  currentY += 6; // Reduced spacing
+  doc.setFontSize(9); // Reduced from 10
   doc.setFont('helvetica', 'bold');
   centerText('-IMPORTANT NOTICE-', currentY);
-  currentY += 5;
+  currentY += 4;
 
-  doc.setFontSize(9);
+  doc.setFontSize(8); // Reduced from 9
   doc.setFont('helvetica', 'normal');
   const noticeText = 'In case of a price discrepancy, return the item & bill within 7 days to refund the difference';
   // Split notice text into multiple lines if needed
   const noticeLines = doc.splitTextToSize(noticeText, contentWidth);
   noticeLines.forEach((line: string) => {
     centerText(line, currentY);
-    currentY += 4;
+    currentY += 3.5; // Slightly reduced line spacing
   });
+  
+  // Add bottom margin
+  currentY += marginBottom;
 
   return doc;
 }
