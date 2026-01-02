@@ -110,6 +110,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   // Store Name (centered, uppercase, bold)
   doc.setFontSize(16); // Reduced from 20 to fit receipt width
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   const storeName = payment.shopInfo?.shopName?.toUpperCase() || 'YIVA ESSENTIALS';
   // Split long store names if needed
   const storeNameLines = doc.splitTextToSize(storeName, contentWidth);
@@ -123,6 +124,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   const address = payment.shopInfo?.address || 'Kale Beach Club, 110/4 Matara road, Ahangama';
   doc.setFontSize(9); // Slightly reduced
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   const addressLines = doc.splitTextToSize(address, contentWidth);
   addressLines.forEach((line: string) => {
     centerText(line, currentY);
@@ -134,6 +136,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   const contactPhone = payment.shopInfo?.contactPhone || '077 738 0555';
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   centerText(contactPhone, currentY);
   currentY += 6;
 
@@ -158,6 +161,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text(`${dateStr} ${timeStr}`, marginLeft, currentY);
   currentY += 5;
 
@@ -165,6 +169,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   if (payment.cashierName) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0); // Black for thermal printing
     doc.text(`Cashier: ${payment.cashierName}`, marginLeft, currentY);
     currentY += 5;
   }
@@ -172,6 +177,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   // Transaction Number (Invoice Number)
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text(`No: ${payment.invoiceNumber || 'N/A'}`, marginLeft, currentY);
   currentY += 6;
 
@@ -184,6 +190,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   // Adjusted column widths for 80mm receipt (70mm content width)
   doc.setFontSize(9); // Reduced from 11
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255); // White text for header
   const colWidths = {
     no: 8, // Reduced from 12
     item: contentWidth - 8 - 12 - 20 - 20, // Remaining space: 70 - 8 - 12 - 20 - 20 = 10mm for item name
@@ -193,6 +200,10 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   };
   let xPos = marginLeft;
 
+  // Draw black background rectangle for header
+  doc.setFillColor(0, 0, 0); // Black background for thermal printing visibility
+  doc.rect(marginLeft, currentY - 4, contentWidth, 5, 'F');
+  
   doc.text('NO', xPos, currentY);
   xPos += colWidths.no;
   doc.text('ITEM', xPos, currentY);
@@ -202,6 +213,9 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   doc.text('PRICE', xPos, currentY);
   xPos += colWidths.price;
   doc.text('AMOUNT', xPos, currentY);
+  
+  // Reset text color to black for body content
+  doc.setTextColor(0, 0, 0);
   currentY += 5;
 
   // Divider line under header
@@ -212,6 +226,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   // Items
   doc.setFontSize(8); // Reduced from 9 for better fit
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   (payment.items || []).forEach((item: any, index: number) => {
     // Check if we need a new page
     if (currentY > pageHeight - marginBottom - 40) {
@@ -238,11 +253,13 @@ export async function generateReceiptPDF(payment: ReceiptData) {
       itemY += 4;
       doc.setFontSize(8);
       doc.setFont('helvetica', 'italic');
+      doc.setTextColor(0, 0, 0); // Black for thermal printing
       const productCode = `*${String(item.itemId).slice(-8)}`;
       doc.text(productCode, xPos, itemY);
       itemY += 4;
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0); // Black for thermal printing
     } else {
       itemY += 4;
     }
@@ -297,6 +314,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   // Net Total
   doc.setFontSize(10); // Reduced from 11
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text('Net Total:', marginLeft, currentY);
   doc.text(netTotal.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
   currentY += 5;
@@ -304,6 +322,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   // Payment Method
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   const cashPaid = (payment as any).cashPaid || 0;
   const creditPaid = (payment as any).creditPaid || 0;
   const debitPaid = (payment as any).debitPaid || 0;
@@ -330,21 +349,25 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   currentY += 5;
 
   if (paymentMethod === 'CARD') {
+    doc.setTextColor(0, 0, 0); // Black for thermal printing
     doc.text('Card Amount:', marginLeft, currentY);
     doc.text(paymentAmount.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
     currentY += 5;
   } else if (paymentMethod === 'SPLIT') {
     if (cashPaid > 0) {
+      doc.setTextColor(0, 0, 0); // Black for thermal printing
       doc.text('Cash:', marginLeft, currentY);
       doc.text(cashPaid.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
       currentY += 5;
     }
     if (creditPaid > 0) {
+      doc.setTextColor(0, 0, 0); // Black for thermal printing
       doc.text('Credit Card:', marginLeft, currentY);
       doc.text(creditPaid.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
       currentY += 5;
     }
     if (debitPaid > 0) {
+      doc.setTextColor(0, 0, 0); // Black for thermal printing
       doc.text('Debit Card:', marginLeft, currentY);
       doc.text(debitPaid.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
       currentY += 5;
@@ -354,6 +377,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   // Balance
   const totalPaid = cashPaid + creditPaid + debitPaid;
   const balance = totalPaid - netTotal;
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text('Balance:', marginLeft, currentY);
   doc.text(balance.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
   currentY += 6;
@@ -365,11 +389,13 @@ export async function generateReceiptPDF(payment: ReceiptData) {
     currentY += 4;
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0); // Black for thermal printing
     centerText('Discounts', currentY);
     currentY += 5;
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0); // Black for thermal printing
     if (billDiscount > 0) {
       doc.text('* Bill Discount', marginLeft, currentY);
       doc.text(billDiscount.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
@@ -386,11 +412,13 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   currentY += 6; // Reduced spacing
   doc.setFontSize(9); // Reduced from 10
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   centerText('-IMPORTANT NOTICE-', currentY);
   currentY += 4;
 
   doc.setFontSize(8); // Reduced from 9
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   const noticeText = 'In case of a price discrepancy, return the item & bill within 7 days to refund the difference';
   // Split notice text into multiple lines if needed
   const noticeLines = doc.splitTextToSize(noticeText, contentWidth);
