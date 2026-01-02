@@ -12,10 +12,10 @@ export function generateInvoicePDF(payment: NewPaymentCreate) {
   const contentWidth = pageWidth - marginLeft - marginRight;
   let currentY = 15;
 
-  // Invoice Number (prominently displayed in dark green, bold)
+  // Invoice Number (prominently displayed in black, bold)
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(18, 80, 26); // Primary dark green
+  doc.setTextColor(0, 0, 0); // Black
   const invoiceNumber = (payment as any).invoiceNumber || 'N/A';
   doc.text(`Invoice #: ${invoiceNumber}`, marginLeft, currentY);
   currentY += 7;
@@ -23,12 +23,13 @@ export function generateInvoicePDF(payment: NewPaymentCreate) {
   // Company Info
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(0, 0, 0);
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text('YIVA ESSENTIALS', marginLeft, currentY);
   currentY += 6;
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text('BR Reg No: WCO/02152', marginLeft, currentY);
   currentY += 5;
   doc.text('NO:14/R, Araliya Uyana, COLOMBO - 05', marginLeft, currentY);
@@ -51,6 +52,7 @@ export function generateInvoicePDF(payment: NewPaymentCreate) {
   });
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text(`${dateStr} ${timeStr}`, marginLeft, currentY);
   currentY += 6;
 
@@ -74,15 +76,17 @@ export function generateInvoicePDF(payment: NewPaymentCreate) {
     ]),
     theme: 'grid',
     headStyles: { 
-      fillColor: [18, 80, 26], // Primary dark green
-      textColor: [255, 255, 255], // White text
+      fillColor: [0, 0, 0], // Black background for thermal printing visibility
+      textColor: [255, 255, 255], // White text on black background
       fontStyle: 'bold',
       fontSize: 9
     },
     margin: { left: marginLeft, right: marginRight },
     styles: { 
       fontSize: 9,
-      cellPadding: 2
+      cellPadding: 2,
+      textColor: [0, 0, 0], // Black text for table body
+      fillColor: [255, 255, 255], // White background for table body
     },
     columnStyles: {
       0: { halign: 'left' }, // Product - left aligned
@@ -123,6 +127,7 @@ export function generateInvoicePDF(payment: NewPaymentCreate) {
   // Net Total (bold label, bold value)
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text('Net Total:', marginLeft, currentY);
   doc.text(grandTotal.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
   currentY += 6;
@@ -130,11 +135,13 @@ export function generateInvoicePDF(payment: NewPaymentCreate) {
   // Payment Method
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text('Payment Method:', marginLeft, currentY);
   doc.text(paymentMethod, pageWidth - marginRight, currentY, { align: 'right' });
   currentY += 6;
 
   // Balance
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text('Balance:', marginLeft, currentY);
   doc.text(balance.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
   currentY += 10;
@@ -142,6 +149,7 @@ export function generateInvoicePDF(payment: NewPaymentCreate) {
   // Important Notice (centered)
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   const noticeTitle = '-IMPORTANT NOTICE-';
   const noticeTitleWidth = doc.getTextWidth(noticeTitle);
   doc.text(noticeTitle, (pageWidth - noticeTitleWidth) / 2, currentY);
@@ -149,6 +157,7 @@ export function generateInvoicePDF(payment: NewPaymentCreate) {
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0); // Black for thermal printing
   const noticeText = 'In case of a price discrepancy, return the item & bill within 7 days to refund the difference';
   const noticeLines = doc.splitTextToSize(noticeText, contentWidth);
   noticeLines.forEach((line: string) => {
