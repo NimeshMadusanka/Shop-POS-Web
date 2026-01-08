@@ -16,29 +16,28 @@ interface ReceiptData extends NewPaymentCreate {
 export async function generateReceiptPDF(payment: ReceiptData) {
   /**
    * Receipt PDF Dimensions:
-   * - Width: 80mm (standard thermal receipt printer width, equivalent to 3 inches)
-   * - Height: Auto-expanding (starts at 297mm, adds pages as needed)
-   * - Margins: 5mm on all sides (left, right, top, bottom)
-   * - Content Width: 70mm (80mm - 5mm left - 5mm right)
+   * - Width: 79mm
+   * - Height: 103mm
+   * - Margins: 3mm on all sides (left, right, top, bottom)
+   * - Content Width: 73mm (79mm - 3mm left - 3mm right)
    * 
-   * This format is optimized for standard thermal receipt printers
-   * that use 80mm wide paper rolls.
+   * This format is optimized for 79mm x 103mm thermal receipt paper.
    */
-  const receiptWidth = 80; // 80mm = standard receipt printer width (3 inches)
-  const receiptHeight = 297; // Start with A4 height, will auto-expand if needed
+  const receiptWidth = 79; // 79mm width
+  const receiptHeight = 103; // 103mm height
   
   const doc = new jsPDF({
-    format: [receiptWidth, receiptHeight], // Custom size: 80mm x 297mm
+    format: [receiptWidth, receiptHeight], // Custom size: 79mm x 103mm
     unit: 'mm',
   });
 
-  const pageWidth = doc.internal.pageSize.getWidth(); // Should be 80mm
-  const pageHeight = doc.internal.pageSize.getHeight(); // Auto-expanding
-  const marginLeft = 5; // 5mm left margin (standard for receipts)
-  const marginRight = 5; // 5mm right margin
-  const marginTop = 5; // 5mm top margin
-  const marginBottom = 5; // 5mm bottom margin
-  const contentWidth = pageWidth - marginLeft - marginRight; // 70mm content width
+  const pageWidth = doc.internal.pageSize.getWidth(); // Should be 79mm
+  const pageHeight = doc.internal.pageSize.getHeight(); // Should be 103mm
+  const marginLeft = 3; // 3mm left margin
+  const marginRight = 3; // 3mm right margin
+  const marginTop = 3; // 3mm top margin
+  const marginBottom = 3; // 3mm bottom margin
+  const contentWidth = pageWidth - marginLeft - marginRight; // 73mm content width
   let currentY = marginTop; // Start from top margin
 
   // Helper function to center text
@@ -69,10 +68,10 @@ export async function generateReceiptPDF(payment: ReceiptData) {
             ctx.drawImage(img, 0, 0);
             const imgData = canvas.toDataURL('image/png');
             
-            // Calculate logo dimensions (max width 50mm to fit receipt, maintain aspect ratio)
-            const maxWidth = 50; // Adjusted for 80mm receipt width
+            // Calculate logo dimensions (max width 35mm to fit receipt, maintain aspect ratio)
+            const maxWidth = 35; // Adjusted for 79mm receipt width
             const aspectRatio = img.width / img.height;
-            const logoWidth = Math.min(maxWidth, contentWidth - 10); // Ensure it fits with margins
+            const logoWidth = Math.min(maxWidth, contentWidth - 5); // Ensure it fits with margins
             const logoHeight = logoWidth / aspectRatio;
             
             // Center the logo horizontally
@@ -80,7 +79,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
             
             // Add the image to PDF using base64 data
             doc.addImage(imgData, 'PNG', logoX, currentY, logoWidth, logoHeight);
-            currentY += logoHeight + 6; // Add spacing after logo
+            currentY += logoHeight + 4; // Add spacing after logo
           }
           resolve();
         } catch (error) {
@@ -108,42 +107,50 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   }
 
   // Store Name (centered, uppercase, bold)
-  doc.setFontSize(16); // Reduced from 20 to fit receipt width
+  doc.setFontSize(18); // Larger font for better visibility
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0); // Black for thermal printing
-  const storeName = payment.shopInfo?.shopName?.toUpperCase() || 'YIVA ESSENTIALS';
+  const storeName = payment.shopInfo?.shopName?.toUpperCase() || 'YIVA';
   // Split long store names if needed
   const storeNameLines = doc.splitTextToSize(storeName, contentWidth);
   storeNameLines.forEach((line: string) => {
     centerText(line, currentY);
-    currentY += 5;
+    currentY += 6;
   });
-  currentY += 3;
+  
+  // Add "ESSENTIALS" below if store name is "YIVA"
+  if (storeName === 'YIVA' || storeName === 'YIVA ESSENTIALS') {
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'normal');
+    centerText('ESSENTIALS', currentY);
+    currentY += 5;
+  }
+  currentY += 2;
 
   // Location (centered, wrapped if needed)
-  const address = payment.shopInfo?.address || 'Kale Beach Club, 110/4 Matara road, Ahangama';
-  doc.setFontSize(9); // Slightly reduced
+  const address = payment.shopInfo?.address || 'Kala Beach Club, 110/4 Manara road, Ahangama';
+  doc.setFontSize(10); // Increased font size
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(0, 0, 0); // Black for thermal printing
   const addressLines = doc.splitTextToSize(address, contentWidth);
   addressLines.forEach((line: string) => {
     centerText(line, currentY);
-    currentY += 4;
+    currentY += 5;
   });
   currentY += 2;
 
   // Contact Number (centered)
-  const contactPhone = payment.shopInfo?.contactPhone || '077 738 0555';
-  doc.setFontSize(10);
+  const contactPhone = payment.shopInfo?.contactPhone || '077 739 0565';
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(0, 0, 0); // Black for thermal printing
   centerText(contactPhone, currentY);
-  currentY += 6;
+  currentY += 5;
 
   // Divider line
   doc.setLineWidth(0.5);
   doc.line(marginLeft, currentY, pageWidth - marginRight, currentY);
-  currentY += 6;
+  currentY += 5;
 
   // Date and Time
   const now = new Date();
@@ -159,7 +166,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
     hour12: false,
   });
 
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text(`${dateStr} ${timeStr}`, marginLeft, currentY);
@@ -167,7 +174,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
 
   // Cashier/Operator
   if (payment.cashierName) {
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0); // Black for thermal printing
     doc.text(`Cashier: ${payment.cashierName}`, marginLeft, currentY);
@@ -175,34 +182,34 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   }
 
   // Transaction Number (Invoice Number)
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text(`No: ${payment.invoiceNumber || 'N/A'}`, marginLeft, currentY);
-  currentY += 6;
+  currentY += 5;
 
   // Divider line
   doc.setLineWidth(0.5);
   doc.line(marginLeft, currentY, pageWidth - marginRight, currentY);
-  currentY += 5;
+  currentY += 4;
 
   // Itemized List Header
-  // Adjusted column widths for 80mm receipt (70mm content width)
-  doc.setFontSize(9); // Reduced from 11
+  // Adjusted column widths for 79mm receipt (73mm content width)
+  doc.setFontSize(10); // Increased font size
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(255, 255, 255); // White text for header
   const colWidths = {
-    no: 8, // Reduced from 12
-    item: contentWidth - 8 - 12 - 20 - 20, // Remaining space: 70 - 8 - 12 - 20 - 20 = 10mm for item name
-    qty: 12, // Reduced from 25
-    price: 20, // Reduced from 25
-    amount: 20, // Reduced from 30
+    no: 10, // Increased from 8
+    item: contentWidth - 10 - 15 - 22 - 22, // Remaining space for item name
+    qty: 15, // Increased from 12
+    price: 22, // Increased from 20
+    amount: 22, // Increased from 20
   };
   let xPos = marginLeft;
 
   // Draw black background rectangle for header
   doc.setFillColor(0, 0, 0); // Black background for thermal printing visibility
-  doc.rect(marginLeft, currentY - 4, contentWidth, 5, 'F');
+  doc.rect(marginLeft, currentY - 4, contentWidth, 6, 'F');
   
   doc.text('NO', xPos, currentY);
   xPos += colWidths.no;
@@ -216,7 +223,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   
   // Reset text color to black for body content
   doc.setTextColor(0, 0, 0);
-  currentY += 5;
+  currentY += 6;
 
   // Divider line under header
   doc.setLineWidth(0.5);
@@ -224,12 +231,12 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   currentY += 4;
 
   // Items
-  doc.setFontSize(8); // Reduced from 9 for better fit
+  doc.setFontSize(9); // Increased font size for better readability
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(0, 0, 0); // Black for thermal printing
   (payment.items || []).forEach((item: any, index: number) => {
     // Check if we need a new page
-    if (currentY > pageHeight - marginBottom - 40) {
+    if (currentY > pageHeight - marginBottom - 30) {
       doc.addPage([receiptWidth, receiptHeight]);
       currentY = marginTop;
     }
@@ -250,23 +257,23 @@ export async function generateReceiptPDF(payment: ReceiptData) {
     
     // Product Code (if available, show below item name)
     if (item?.itemId) {
-      itemY += 4;
+      itemY += 5;
       doc.setFontSize(8);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(0, 0, 0); // Black for thermal printing
       const productCode = `*${String(item.itemId).slice(-8)}`;
       doc.text(productCode, xPos, itemY);
-      itemY += 4;
+      itemY += 5;
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0); // Black for thermal printing
     } else {
-      itemY += 4;
+      itemY += 5;
     }
 
     // If item name wrapped to multiple lines, adjust position
     if (itemNameLines.length > 1) {
-      itemY += (itemNameLines.length - 1) * 4;
+      itemY += (itemNameLines.length - 1) * 5;
     }
 
     // QTY, PRICE, AMOUNT aligned to the right columns
@@ -285,14 +292,14 @@ export async function generateReceiptPDF(payment: ReceiptData) {
     xPos += colWidths.price;
     doc.text(itemTotalAfterDiscount, xPos, currentY);
     
-    currentY = Math.max(itemY, currentY + 4) + 2;
+    currentY = Math.max(itemY, currentY + 5) + 2;
   });
 
   // Divider line
-  currentY += 4;
+  currentY += 3;
   doc.setLineWidth(0.5);
   doc.line(marginLeft, currentY, pageWidth - marginRight, currentY);
-  currentY += 6;
+  currentY += 5;
 
   // Calculate totals
   let itemSubtotal = 0;
@@ -312,7 +319,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   const netTotal = payment.grandTotal || (subtotalAfterItemDiscount - billDiscount);
 
   // Net Total
-  doc.setFontSize(10); // Reduced from 11
+  doc.setFontSize(11); // Increased font size
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text('Net Total:', marginLeft, currentY);
@@ -320,7 +327,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   currentY += 5;
 
   // Payment Method
-  doc.setFontSize(10);
+  doc.setFontSize(11); // Increased font size
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(0, 0, 0); // Black for thermal printing
   const cashPaid = (payment as any).cashPaid || 0;
@@ -377,10 +384,11 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   // Balance
   const totalPaid = cashPaid + creditPaid + debitPaid;
   const balance = totalPaid - netTotal;
+  doc.setFontSize(11); // Increased font size
   doc.setTextColor(0, 0, 0); // Black for thermal printing
   doc.text('Balance:', marginLeft, currentY);
   doc.text(balance.toFixed(2), pageWidth - marginRight, currentY, { align: 'right' });
-  currentY += 6;
+  currentY += 5;
 
   // Discounts section (if any) - use calculated values
   const totalDiscount = itemDiscount + billDiscount;
@@ -409,22 +417,22 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   }
 
   // Important Notice
-  currentY += 6; // Reduced spacing
-  doc.setFontSize(9); // Reduced from 10
+  currentY += 4;
+  doc.setFontSize(10); // Increased font size
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0); // Black for thermal printing
-  centerText('-IMPORTANT NOTICE-', currentY);
-  currentY += 4;
+  centerText('IMPORTANT NOTICE', currentY);
+  currentY += 5;
 
-  doc.setFontSize(8); // Reduced from 9
+  doc.setFontSize(9); // Increased font size
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(0, 0, 0); // Black for thermal printing
-  const noticeText = 'In case of a price discrepancy, return the item & bill within 7 days to refund the difference';
+  const noticeText = 'In case of a price discrepancy, return the item & receipt within 7 days to get the difference.';
   // Split notice text into multiple lines if needed
   const noticeLines = doc.splitTextToSize(noticeText, contentWidth);
   noticeLines.forEach((line: string) => {
     centerText(line, currentY);
-    currentY += 3.5; // Slightly reduced line spacing
+    currentY += 4.5; // Increased line spacing
   });
   
   // Add bottom margin
