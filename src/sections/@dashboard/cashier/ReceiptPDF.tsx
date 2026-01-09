@@ -13,26 +13,42 @@ interface ReceiptData extends NewPaymentCreate {
   shopInfo?: ShopInfo;
 }
 
-export async function generateReceiptPDF(payment: ReceiptData) {
+/**
+ * IMPORTANT PRINTING NOTES (for Chrome / Edge etc.):
+ * - This PDF is generated as a narrow strip (~79–80mm wide) with auto height.
+ * - In the browser print dialog, always use:
+ *   - Destination: your thermal receipt printer
+ *   - More settings → Paper size: the printer's 80mm/receipt size (or closest)
+ *   - Scale: 100% / \"Actual size\" (DO NOT use \"Fit to page\")
+ *   - Margins: None or Minimum
+ * If scaling is not 100%, the receipt will look tiny on paper.
+ */
+
+export async function generateReceiptPDF(
+  payment: ReceiptData,
+  options?: { debugRuler?: boolean }
+) {
   /**
    * Receipt PDF Dimensions:
-   * - Width: 79mm
-   * - Height: 103mm
+   * - Width: 79mm (standard 80mm thermal receipt width)
+   * - Height: 297mm (A4 height) – acts like an auto-height strip for most receipts
    * - Margins: 3mm on all sides (left, right, top, bottom)
    * - Content Width: 73mm (79mm - 3mm left - 3mm right)
-   * 
-   * This format is optimized for 79mm x 103mm thermal receipt paper.
+   *
+   * Notes:
+   * - We use a tall page (297mm) so receipts have plenty of vertical space.
+   *   The printer will stop at the end of the content.
    */
-  const receiptWidth = 79; // 79mm width
-  const receiptHeight = 103; // 103mm height
+  const receiptWidth = 79; // 79mm width (close to standard 80mm roll)
+  const receiptHeight = 297; // Tall page to avoid cutting content
   
   const doc = new jsPDF({
-    format: [receiptWidth, receiptHeight], // Custom size: 79mm x 103mm
+    format: [receiptWidth, receiptHeight], // Custom size: 79mm x 297mm strip
     unit: 'mm',
   });
 
-  const pageWidth = doc.internal.pageSize.getWidth(); // Should be 79mm
-  const pageHeight = doc.internal.pageSize.getHeight(); // Should be 103mm
+  const pageWidth = doc.internal.pageSize.getWidth(); // ~79mm
+  const pageHeight = doc.internal.pageSize.getHeight(); // 297mm
   const marginLeft = 3; // 3mm left margin
   const marginRight = 3; // 3mm right margin
   const marginTop = 3; // 3mm top margin
@@ -416,6 +432,30 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   
   // Add bottom margin
   currentY += marginBottom;
+
+  // Optional debug ruler to verify physical scale (1mm in PDF ≈ 1mm on paper)
+  if (options?.debugRuler) {
+    const rulerStartY = pageHeight - marginBottom - 15;
+    const rulerStartX = marginLeft;
+    const rulerEndX = rulerStartX + 50; // 50mm ruler
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.2);
+    // Main ruler line
+    doc.line(rulerStartX, rulerStartY, rulerEndX, rulerStartY);
+
+    // Tick marks every 5mm, labelled every 10mm
+    for (let mm = 0; mm <= 50; mm += 5) {
+      const x = rulerStartX + mm;
+      const tickHeight = mm % 10 === 0 ? 3 : 1.5;
+      doc.line(x, rulerStartY, x, rulerStartY - tickHeight);
+      if (mm % 10 === 0) {
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'normal');
+        doc.text(String(mm), x, rulerStartY - tickHeight - 1);
+      }
+    }
+  }
 
   return doc;
 }
