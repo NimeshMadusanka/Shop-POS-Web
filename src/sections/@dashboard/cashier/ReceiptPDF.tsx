@@ -16,30 +16,35 @@ interface ReceiptData extends NewPaymentCreate {
 export async function generateReceiptPDF(payment: ReceiptData) {
   /**
    * Receipt PDF Dimensions:
-   * - Width: 80mm (standard thermal receipt printer width, equivalent to 3 inches)
-   * - Height: Auto-expanding (starts at 297mm, adds pages as needed)
+   * - Width: 79mm (thermal receipt printer width)
+   * - Height: 103mm (fixed height for receipt)
    * - Margins: 5mm on all sides (left, right, top, bottom)
-   * - Content Width: 70mm (80mm - 5mm left - 5mm right)
+   * - Content Width: 69mm (79mm - 5mm left - 5mm right)
    * 
-   * This format is optimized for standard thermal receipt printers
-   * that use 80mm wide paper rolls.
+   * This format is optimized for thermal receipt printers
+   * that use 79mm wide paper rolls.
    */
-  const receiptWidth = 80; // 80mm = standard receipt printer width (3 inches)
-  const receiptHeight = 297; // Start with A4 height, will auto-expand if needed
+  const receiptWidth = 79; // 79mm receipt width
+  const receiptHeight = 103; // 103mm receipt height
 
+  // Create PDF with custom page size (width x height in mm)
+  // Note: When using custom format array, don't specify orientation as it may conflict
   const doc = new jsPDF({
-    format: [receiptWidth, receiptHeight], // Custom size: 80mm x 297mm
     unit: 'mm',
+    format: [receiptWidth, receiptHeight], // Custom size: 79mm (width) x 103mm (height)
   });
 
-  const pageWidth = doc.internal.pageSize.getWidth(); // Should be 80mm
-  const pageHeight = doc.internal.pageSize.getHeight(); // Auto-expanding
+  // Get actual page dimensions from jsPDF to verify they match our custom size
+  const pageWidth = doc.internal.pageSize.getWidth(); // Should be 79mm
+  const pageHeight = doc.internal.pageSize.getHeight(); // Should be 103mm
+  
+  // Set margins - these position content from the top-left corner (0,0)
   const marginLeft = 5; // 5mm left margin (standard for receipts)
   const marginRight = 5; // 5mm right margin
   const marginTop = 5; // 5mm top margin
   const marginBottom = 5; // 5mm bottom margin
-  const contentWidth = pageWidth - marginLeft - marginRight; // 70mm content width
-  let currentY = marginTop; // Start from top margin
+  const contentWidth = pageWidth - marginLeft - marginRight; // 69mm content width (79mm - 5mm - 5mm)
+  let currentY = marginTop; // Start from top margin (Y=0 is at top in jsPDF)
 
   // Helper function to center text
   const centerText = (text: string, y: number) => {
@@ -70,7 +75,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
             const imgData = canvas.toDataURL('image/png');
 
             // Calculate logo dimensions (max width 50mm to fit receipt, maintain aspect ratio)
-            const maxWidth = 50; // Adjusted for 80mm receipt width
+            const maxWidth = 50; // Adjusted for 79mm receipt width
             const aspectRatio = img.width / img.height;
             const logoWidth = Math.min(maxWidth, contentWidth - 10); // Ensure it fits with margins
             const logoHeight = logoWidth / aspectRatio;
@@ -195,13 +200,13 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   currentY += 5;
 
   // Itemized List Header
-  // Adjusted column widths for 80mm receipt (70mm content width)
+  // Adjusted column widths for 79mm receipt (69mm content width)
   doc.setFontSize(9); // Reduced from 11
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(255, 255, 255); // White text for header
   const colWidths = {
     no: 8, // Reduced from 12
-    item: contentWidth - 8 - 12 - 20 - 20, // Remaining space: 70 - 8 - 12 - 20 - 20 = 10mm for item name
+    item: contentWidth - 8 - 12 - 20 - 20, // Remaining space: 69 - 8 - 12 - 20 - 20 = 9mm for item name
     qty: 12, // Reduced from 25
     price: 20, // Reduced from 25
     amount: 20, // Reduced from 30
