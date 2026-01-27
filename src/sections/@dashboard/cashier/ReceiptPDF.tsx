@@ -35,7 +35,7 @@ export async function generateReceiptPDF(payment: ReceiptData) {
   });
 
   // Get actual page dimensions from jsPDF to verify they match our custom size
-  const pageWidth = doc.internal.pageSize.getWidth() - 9; // Should be 79mm
+  const pageWidth = doc.internal.pageSize.getWidth() - 8; // Should be 79mm
   const pageHeight = doc.internal.pageSize.getHeight(); // Should be 103mm
   
   // Set margins - these position content from the top-left corner (0,0)
