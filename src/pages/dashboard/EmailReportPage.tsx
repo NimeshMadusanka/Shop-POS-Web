@@ -345,6 +345,8 @@ export default function EmailReportPage() {
             0
           );
 
+          const totalSaleBeforeDiscount = totalSoldAmount + totalDiscountAmount;
+
           doc.setFontSize(12);
           doc.setFont('helvetica', 'bold');
           doc.text('Summary', marginLeft, currentY);
@@ -353,7 +355,7 @@ export default function EmailReportPage() {
           doc.setFontSize(10);
           doc.setFont('helvetica', 'normal');
           doc.text(
-            `Total Sold: ${soldTransactionCount} transactions (LKR ${totalSoldAmount.toFixed(2)})`,
+            `Total Sold: ${soldTransactionCount} transactions`,
             marginLeft,
             currentY
           );
@@ -373,7 +375,19 @@ export default function EmailReportPage() {
           );
           currentY += 6;
           doc.text(
-            `Total Discount Applied: LKR ${totalDiscountAmount.toFixed(2)}`,
+            `Total Sale: LKR ${totalSaleBeforeDiscount.toFixed(2)}`,
+            marginLeft,
+            currentY
+          );
+          currentY += 6;
+          doc.text(
+            `Total Discount applied: LKR ${totalDiscountAmount.toFixed(2)}`,
+            marginLeft,
+            currentY
+          );
+          currentY += 6;
+          doc.text(
+            `Total Sale After Discount: LKR ${totalSoldAmount.toFixed(2)}`,
             marginLeft,
             currentY
           );
