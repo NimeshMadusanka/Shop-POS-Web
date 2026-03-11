@@ -267,28 +267,47 @@ export default function EmailReportPage() {
         if (reportData.shopClientTransactions.length > 0) {
           autoTable(doc, {
             startY: currentY,
-            head: [['Date', 'Invoice', 'Item Name', 'Brand', 'Qty', 'Total', 'Type']],
-            body: reportData.shopClientTransactions.map((t) => [
-              new Date(t.date).toLocaleDateString(),
-              truncateText(t.invoiceNumber || 'N/A', 15),
-              truncateText(t.itemName || 'N/A', 22),
-              truncateText(t.brandName || 'N/A', 12),
-              String(t.quantity || 0),
-              `$${Number(t.total || 0).toFixed(2)}`,
-              truncateText(t.operationType || 'N/A', 12),
-            ]),
+            head: [['Date', 'Invoice', 'Item Name', 'Brand', 'Qty', 'Total', 'Type', 'Discount']],
+            body: reportData.shopClientTransactions.map((t) => {
+              const quantity = t.quantity || 0;
+              const total = Number(t.total || 0);
+              const discountPercent = (t as any).discountPercent ?? null;
+              const discountAmount = Number((t as any).discountAmount ?? 0);
+              const hasDiscount = !!discountPercent || !!discountAmount;
+
+              const discountDisplayParts: string[] = [];
+              if (discountPercent) {
+                discountDisplayParts.push(`${discountPercent}%`);
+              }
+              if (discountAmount) {
+                discountDisplayParts.push(`LKR ${discountAmount.toFixed(2)}`);
+              }
+              const discountDisplay = hasDiscount ? discountDisplayParts.join(' / ') : '-';
+
+              return [
+                new Date(t.date).toLocaleDateString(),
+                truncateText(t.invoiceNumber || 'N/A', 18),
+                truncateText(t.itemName || 'N/A', 28),
+                truncateText(t.brandName || 'N/A', 10),
+                String(quantity),
+                `LKR ${total.toFixed(2)}`,
+                truncateText(t.operationType || 'N/A', 10),
+                discountDisplay,
+              ];
+            }),
             theme: 'grid',
             headStyles: { fillColor: [0, 102, 204], fontSize: 9 },
-            margin: { left: marginLeft, right: 20 },
+            margin: { left: marginLeft, right: 10 },
             styles: { fontSize: 7, cellPadding: 1.5 },
             columnStyles: {
-              0: { cellWidth: 25 }, // Date
-              1: { cellWidth: 30 }, // Invoice
-              2: { cellWidth: 40 }, // Item Name
-              3: { cellWidth: 25 }, // Brand
-              4: { cellWidth: 15 }, // Quantity
-              5: { cellWidth: 22 }, // Total
-              6: { cellWidth: 25 }, // Type
+              0: { cellWidth: 16 }, // Date
+              1: { cellWidth: 34 }, // Invoice
+              2: { cellWidth: 52 }, // Item Name
+              3: { cellWidth: 12 }, // Brand
+              4: { cellWidth: 9 },  // Quantity
+              5: { cellWidth: 18 }, // Total
+              6: { cellWidth: 12 }, // Type
+              7: { cellWidth: 17 }, // Discount
             },
             tableWidth: 'auto',
           });
@@ -297,14 +316,34 @@ export default function EmailReportPage() {
           currentY = finalY + 10;
 
           // Summary
-          const totalSold = reportData.shopClientTransactions
-            .filter((t) => t.operationType === 'Sold')
-            .reduce((sum, t) => sum + (t.total || 0), 0);
-          const totalRefunded = reportData.shopClientTransactions
-            .filter((t) => t.operationType === 'Refunded')
-            .reduce((sum, t) => sum + (t.total || 0), 0);
-          const soldCount = reportData.shopClientTransactions.filter((t) => t.operationType === 'Sold').length;
-          const refundedCount = reportData.shopClientTransactions.filter((t) => t.operationType === 'Refunded').length;
+          const soldTransactions = reportData.shopClientTransactions.filter(
+            (t) => t.operationType === 'Sold'
+          );
+          const refundedTransactions = reportData.shopClientTransactions.filter(
+            (t) => t.operationType === 'Refunded'
+          );
+
+          const soldTransactionCount = soldTransactions.length;
+          const refundedTransactionCount = refundedTransactions.length;
+
+          const totalSoldAmount = soldTransactions.reduce(
+            (sum, t) => sum + (t.total || 0),
+            0
+          );
+          const totalRefundedAmount = refundedTransactions.reduce(
+            (sum, t) => sum + (t.total || 0),
+            0
+          );
+
+          const totalSoldItems = soldTransactions.reduce(
+            (sum, t) => sum + (t.quantity || 0),
+            0
+          );
+
+          const totalDiscountAmount = reportData.shopClientTransactions.reduce(
+            (sum, t) => sum + Number((t as any).discountAmount || 0),
+            0
+          );
 
           doc.setFontSize(12);
           doc.setFont('helvetica', 'bold');
@@ -313,9 +352,31 @@ export default function EmailReportPage() {
 
           doc.setFontSize(10);
           doc.setFont('helvetica', 'normal');
-          doc.text(`Total Sold: ${soldCount} transactions - $${totalSold.toFixed(2)}`, marginLeft, currentY);
+          doc.text(
+            `Total Sold: ${soldTransactionCount} transactions (LKR ${totalSoldAmount.toFixed(2)})`,
+            marginLeft,
+            currentY
+          );
           currentY += 6;
-          doc.text(`Total Refunded: ${refundedCount} transactions - $${totalRefunded.toFixed(2)}`, marginLeft, currentY);
+          doc.text(
+            `Total Products Sold: ${totalSoldItems} items`,
+            marginLeft,
+            currentY
+          );
+          currentY += 6;
+          doc.text(
+            `Total Refunded: ${refundedTransactionCount} transactions (LKR ${totalRefundedAmount.toFixed(
+              2
+            )})`,
+            marginLeft,
+            currentY
+          );
+          currentY += 6;
+          doc.text(
+            `Total Discount Applied: LKR ${totalDiscountAmount.toFixed(2)}`,
+            marginLeft,
+            currentY
+          );
           currentY += 10; // Add extra space after summary
         } else {
           doc.setFontSize(10);
@@ -327,12 +388,12 @@ export default function EmailReportPage() {
 
       // Add Statistics Section
       if (reportData.statistics) {
-        // Get the current Y position from the last table or use currentY
+        // Use the greater of: space after the last table OR the current position after the summary
         const lastTableY = (doc as any).lastAutoTable?.finalY;
-        if (lastTableY) {
-          currentY = lastTableY + 35; // Add more space after the last table
+        if (lastTableY && lastTableY + 35 > currentY) {
+          currentY = lastTableY + 35;
         } else {
-          currentY += 35; // Add space if no table
+          currentY += 15; // small gap after summary (or previous content)
         }
 
         // Check if we need a new page (leave room for statistics section)
