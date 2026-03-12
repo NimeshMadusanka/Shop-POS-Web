@@ -219,9 +219,9 @@ export default function EmailReportPage() {
             head: [['Date', 'Provider', 'Item Name', 'Brand', 'Amount', 'Type']],
             body: reportData.providerShopTransactions.map((t) => [
               new Date(t.operationDate).toLocaleDateString(),
-              truncateText(t.providerName || 'N/A', 18),
-              truncateText(t.itemName || 'N/A', 22),
-              truncateText(t.brandName || 'N/A', 12),
+              t.providerName || 'N/A',
+              t.itemName || 'N/A',
+              t.brandName || 'N/A',
               String(t.amount || 0),
               truncateText(t.operationType || 'N/A', 15),
             ]),
@@ -231,9 +231,9 @@ export default function EmailReportPage() {
             styles: { fontSize: 7, cellPadding: 1.5 },
             columnStyles: {
               0: { cellWidth: 28 }, // Date
-              1: { cellWidth: 35 }, // Provider
-              2: { cellWidth: 40 }, // Item Name
-              3: { cellWidth: 25 }, // Brand
+              1: { cellWidth: 35, overflow: 'linebreak' }, // Provider
+              2: { cellWidth: 40, overflow: 'linebreak' }, // Item Name
+              3: { cellWidth: 25, overflow: 'linebreak' }, // Brand
               4: { cellWidth: 20 }, // Amount
               5: { cellWidth: 30 }, // Type
             },
@@ -287,8 +287,8 @@ export default function EmailReportPage() {
               return [
                 new Date(t.date).toLocaleDateString(),
                 truncateText(t.invoiceNumber || 'N/A', 18),
-                truncateText(t.itemName || 'N/A', 28),
-                truncateText(t.brandName || 'N/A', 10),
+                t.itemName || 'N/A',
+                t.brandName || 'N/A',
                 String(quantity),
                 `LKR ${total.toFixed(2)}`,
                 truncateText(t.operationType || 'N/A', 10),
@@ -302,8 +302,8 @@ export default function EmailReportPage() {
             columnStyles: {
               0: { cellWidth: 16 }, // Date
               1: { cellWidth: 34 }, // Invoice
-              2: { cellWidth: 52 }, // Item Name
-              3: { cellWidth: 12 }, // Brand
+              2: { cellWidth: 52, overflow: 'linebreak' }, // Item Name
+              3: { cellWidth: 12, overflow: 'linebreak' }, // Brand
               4: { cellWidth: 9 },  // Quantity
               5: { cellWidth: 18 }, // Total
               6: { cellWidth: 12 }, // Type
