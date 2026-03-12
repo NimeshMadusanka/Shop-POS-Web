@@ -32,6 +32,8 @@ type ReportData = {
     total: number;
     grandTotal: number;
     operationType: string;
+    discountPercent?: number;
+    discountAmount?: number;
   }>;
   dateFrom: string | null;
   dateTo: string | null;
