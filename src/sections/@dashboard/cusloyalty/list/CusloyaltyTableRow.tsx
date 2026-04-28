@@ -23,7 +23,7 @@ export default function CusloyaltyTableRow({
   onEditRow,
   onDeleteRow,
 }: Props) {
-  const { _id, itemName, offPercentage, description, discountName, status } = row;
+  const { _id, itemName, offPercentage, description, discountName, status, outletId } = row;
   const [isActive, setIsActive] = useState(status === 'active');
 
   const handleToggle = async () => {
@@ -48,6 +48,7 @@ export default function CusloyaltyTableRow({
       </TableCell>
   <TableCell align="left">{itemName}</TableCell>
       <TableCell align="left">{offPercentage}</TableCell>
+      <TableCell align="left">{outletId || '-'}</TableCell>
      
       <TableCell align="left">{description}</TableCell>
 

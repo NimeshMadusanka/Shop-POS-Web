@@ -16,9 +16,9 @@ export default function BrandEditPage() {
   const { themeStretch } = useSettingsContext();
   const location = useLocation();
 
-  const { _id, brandName, description, providerId, providerName } = location.state;
+  const { _id, brandName, description, commissionPercent } = location.state;
 
-  const userData = { _id, brandName, description, providerId, providerName } as any;
+  const userData = { _id, brandName, description, commissionPercent } as any;
 
   return (
     <>

@@ -9,6 +9,7 @@ import { LoadingButton } from '@mui/lab';
 import { Box, Card, Grid, IconButton, InputAdornment, Stack } from '@mui/material';
 import { useAuthContext } from 'src/auth/useAuthContext';
 import Iconify from 'src/components/iconify/Iconify';
+import { OUTLETS } from 'src/config/outlets';
 // @types
 import { NewUserCreate } from '../../../@types/user';
 // assets
@@ -29,6 +30,7 @@ type FormValuesProps = {
   role: string;
   password: string;
   pin: string;
+  assignedOutletId?: 'AHANGAMA' | 'ARUGAM_BAY' | '';
   phoneNumber: string;
   emergencyPhoneNumber: string;
 };
@@ -76,6 +78,14 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
         .matches(/^\d{6}$/, 'PIN must be exactly 6 digits'),
       otherwise: (schema) => schema.notRequired(),
     }),
+    assignedOutletId: Yup.string().when('role', {
+      is: 'cashier',
+      then: (schema) =>
+        schema
+          .required('Outlet is required for cashier')
+          .oneOf(OUTLETS as any, 'Please select a valid outlet'),
+      otherwise: (schema) => schema.notRequired(),
+    }),
     phoneNumber: Yup.string().required("Phone number is required.")
     .matches(/^07\d{8}$/,"Please enter a valid mobile number"),
     emergencyPhoneNumber: Yup.string()
@@ -92,6 +102,7 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
     password: userData?.password ? userData?.password : "",
     pin: '',
     role: 'admin',
+    assignedOutletId: (userData as any)?.assignedOutletId || '',
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [userData]
@@ -135,8 +146,10 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
         // Add password for admin, PIN for cashier
         if (data?.role === 'cashier') {
           payload.pin = data?.pin;
+          payload.assignedOutletId = data?.assignedOutletId;
         } else {
           payload.password = data?.password;
+          payload.assignedOutletId = null;
         }
 
           await createUserApi(payload, true);
@@ -177,6 +190,16 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
                   </option>
                 ))}
               </RHFSelect>
+              {selectedRole === 'cashier' && (
+                <RHFSelect required native name="assignedOutletId" label="Assigned Outlet">
+                  <option value="">Select outlet</option>
+                  {OUTLETS.map((id) => (
+                    <option key={id} value={id}>
+                      {id}
+                    </option>
+                  ))}
+                </RHFSelect>
+              )}
               {selectedRole === 'cashier' ? (
                 <RHFTextField 
                   required 

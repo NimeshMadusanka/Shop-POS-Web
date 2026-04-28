@@ -26,13 +26,16 @@ import { useSnackbar } from '../../components/snackbar';
 import { useAuthContext } from '../../auth/useAuthContext';
 import { sendDailyReportApi, getReportDataApi } from '../../api/EmailReportApi';
 import { getBrandData } from '../../api/BrandApi';
+import { getPaymentData } from '../../api/PaymentApi';
 import Iconify from '../../components/iconify';
 import { Autocomplete } from '@mui/material';
+import { useOutlet } from '../../contexts/OutletContext';
 
 export default function EmailReportPage() {
   const { themeStretch } = useSettingsContext();
   const { enqueueSnackbar } = useSnackbar();
   const { user } = useAuthContext();
+  const { outletId } = useOutlet();
   const companyID = user?.companyID;
 
   const [date, setDate] = useState<Moment | null>(moment());
@@ -71,6 +74,7 @@ export default function EmailReportPage() {
         companyID,
         date: date ? date.format('YYYY-MM-DD') : undefined,
         brandId: selectedBrand?._id,
+        outletId: outletId === 'combined' ? undefined : outletId,
       });
       enqueueSnackbar('Daily report sent successfully!', { variant: 'success' });
     } catch (error: any) {
@@ -98,6 +102,9 @@ export default function EmailReportPage() {
       if (selectedBrand?._id) {
         params.brandId = selectedBrand._id;
       }
+      if (outletId !== 'combined') {
+        params.outletId = outletId;
+      }
 
       const reportData = await getReportDataApi(params);
 
@@ -106,7 +113,16 @@ export default function EmailReportPage() {
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const marginLeft = 20;
-      let currentY = 20;
+      const headerReserve = 20;
+      const footerReserve = 22;
+      let currentY = headerReserve;
+      const pageBottom = () => pageHeight - footerReserve;
+      const ensureSpace = (needed: number) => {
+        if (currentY + needed > pageBottom()) {
+          doc.addPage();
+          currentY = headerReserve;
+        }
+      };
 
       // Load and add logo image at the top
       try {
@@ -208,12 +224,14 @@ export default function EmailReportPage() {
       // Provider-Shop Transactions Table
       if (showProviderShop) {
         if (reportData.providerShopTransactions.length > 0) {
+          ensureSpace(40);
           // Section title
           doc.setFontSize(16);
           doc.setFont('helvetica', 'bold');
           doc.text('Provider-Shop Transactions', marginLeft, currentY);
           currentY += 8;
 
+          ensureSpace(30);
           autoTable(doc, {
             startY: currentY,
             head: [['Date', 'Provider', 'Item Name', 'Brand', 'Amount', 'Type']],
@@ -227,7 +245,7 @@ export default function EmailReportPage() {
             ]),
             theme: 'grid',
             headStyles: { fillColor: [0, 102, 204], fontSize: 9 },
-            margin: { left: marginLeft, right: 20 },
+            margin: { top: headerReserve, bottom: footerReserve, left: marginLeft, right: 20 },
             styles: { fontSize: 7, cellPadding: 1.5 },
             columnStyles: {
               0: { cellWidth: 28 }, // Date
@@ -253,11 +271,12 @@ export default function EmailReportPage() {
       // Add new page for Shop-Client transactions if showing both sections
       if (showProviderShop && showShopClient && reportData.providerShopTransactions.length > 0) {
         doc.addPage();
-        currentY = 20;
+        currentY = headerReserve;
       }
 
       // Shop-Client Transactions Table
       if (showShopClient) {
+        ensureSpace(40);
         // Section title
         doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
@@ -265,6 +284,7 @@ export default function EmailReportPage() {
         currentY += 8;
 
         if (reportData.shopClientTransactions.length > 0) {
+          ensureSpace(30);
           autoTable(doc, {
             startY: currentY,
             head: [['Date', 'Invoice', 'Item Name', 'Brand', 'Qty', 'Total', 'Type', 'Discount']],
@@ -297,7 +317,7 @@ export default function EmailReportPage() {
             }),
             theme: 'grid',
             headStyles: { fillColor: [0, 102, 204], fontSize: 9 },
-            margin: { left: marginLeft, right: 10 },
+            margin: { top: headerReserve, bottom: footerReserve, left: marginLeft, right: 10 },
             styles: { fontSize: 7, cellPadding: 1.5 },
             columnStyles: {
               0: { cellWidth: 16 }, // Date
@@ -347,6 +367,7 @@ export default function EmailReportPage() {
 
           const totalSaleBeforeDiscount = totalSoldAmount + totalDiscountAmount;
 
+          ensureSpace(60);
           doc.setFontSize(12);
           doc.setFont('helvetica', 'bold');
           doc.text('Summary', marginLeft, currentY);
@@ -411,9 +432,10 @@ export default function EmailReportPage() {
         }
 
         // Check if we need a new page (leave room for statistics section)
+        ensureSpace(50);
         if (currentY > 230) {
           doc.addPage();
-          currentY = 20;
+          currentY = headerReserve;
         }
 
         doc.setFontSize(14);
@@ -443,9 +465,10 @@ export default function EmailReportPage() {
       // Low Stock Alerts Section
       if (reportData.lowStockItems && reportData.lowStockItems.length > 0) {
         // Check if we need a new page
+        ensureSpace(50);
         if (currentY > 200) {
           doc.addPage();
-          currentY = 20;
+          currentY = headerReserve;
         } else {
           currentY += 15;
         }
@@ -457,6 +480,7 @@ export default function EmailReportPage() {
         doc.setTextColor(0, 0, 0); // Reset to black
         currentY += 8;
 
+        ensureSpace(30);
         autoTable(doc, {
           startY: currentY,
           head: [['Item Name', 'Brand', 'Category', 'Current Stock', 'Status']],
@@ -473,7 +497,7 @@ export default function EmailReportPage() {
           }),
           theme: 'grid',
           headStyles: { fillColor: [211, 47, 47], fontSize: 9 },
-          margin: { left: marginLeft, right: 20 },
+          margin: { top: headerReserve, bottom: footerReserve, left: marginLeft, right: 20 },
           styles: { fontSize: 7, cellPadding: 1.5 },
           columnStyles: {
             0: { cellWidth: 50 },
@@ -492,9 +516,10 @@ export default function EmailReportPage() {
       // Missing Stock Alerts Section
       if (reportData.missingStockItems && reportData.missingStockItems.length > 0) {
         // Check if we need a new page
+        ensureSpace(50);
         if (currentY > 200) {
           doc.addPage();
-          currentY = 20;
+          currentY = headerReserve;
         } else {
           currentY += 15;
         }
@@ -506,6 +531,7 @@ export default function EmailReportPage() {
         doc.setTextColor(0, 0, 0); // Reset to black
         currentY += 8;
 
+        ensureSpace(30);
         autoTable(doc, {
           startY: currentY,
           head: [['Item Name', 'Brand', 'Category', 'Missing Amount', 'Date']],
@@ -518,7 +544,7 @@ export default function EmailReportPage() {
           ]),
           theme: 'grid',
           headStyles: { fillColor: [156, 39, 176], fontSize: 9 },
-          margin: { left: marginLeft, right: 20 },
+          margin: { top: headerReserve, bottom: footerReserve, left: marginLeft, right: 20 },
           styles: { fontSize: 7, cellPadding: 1.5 },
           columnStyles: {
             0: { cellWidth: 50 },
@@ -530,6 +556,58 @@ export default function EmailReportPage() {
           tableWidth: 'auto',
         });
       }
+
+      const allPayments = await getPaymentData(
+        companyID,
+        outletId === 'combined' ? undefined : outletId
+      );
+      const fromDate = dateFrom ? dateFrom.clone().startOf('day') : null;
+      const toDate = dateTo ? dateTo.clone().endOf('day') : null;
+      const filteredPayments = (Array.isArray(allPayments) ? allPayments : []).filter((payment: any) => {
+        const paymentDate = moment(payment.date || payment.createdAt);
+        const withinRange =
+          (!fromDate || paymentDate.isSameOrAfter(fromDate)) &&
+          (!toDate || paymentDate.isSameOrBefore(toDate));
+        const matchesBrand =
+          !selectedBrand?._id ||
+          (payment.items || []).some(
+            (item: any) => (item.brandId?._id || item.brandId)?.toString() === selectedBrand._id.toString()
+          );
+        return withinRange && matchesBrand;
+      });
+
+      const methodTotals = filteredPayments.reduce(
+        (acc: any, payment: any) => {
+          const sign = payment.refunded ? -1 : 1;
+          const cash = Number(payment.cashPaid) || 0;
+          const wire = Number(payment.wirePaid) || 0;
+          const card =
+            (Number(payment.creditPaid) || 0) + (Number(payment.debitPaid) || 0) || Number(payment.cardPaid) || 0;
+          const net = Number(payment.grandTotal) || 0;
+          return {
+            cash: acc.cash + sign * cash,
+            card: acc.card + sign * card,
+            wire: acc.wire + sign * wire,
+            net: acc.net + sign * net,
+          };
+        },
+        { cash: 0, card: 0, wire: 0, net: 0 }
+      );
+
+      ensureSpace(45);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Payment Method Totals', marginLeft, currentY);
+      currentY += 8;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Total Cash: LKR ${methodTotals.cash.toFixed(2)}`, marginLeft, currentY);
+      currentY += 6;
+      doc.text(`Total Card: LKR ${methodTotals.card.toFixed(2)}`, marginLeft, currentY);
+      currentY += 6;
+      doc.text(`Total Wire: LKR ${methodTotals.wire.toFixed(2)}`, marginLeft, currentY);
+      currentY += 6;
+      doc.text(`Total Net: LKR ${methodTotals.net.toFixed(2)}`, marginLeft, currentY);
 
       // Add footer to all pages
       const addFooter = (pageNum: number, totalPages: number) => {

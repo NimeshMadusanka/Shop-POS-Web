@@ -38,6 +38,7 @@ import FormProvider from '../../../components/hook-form';
 import { RHFTextField } from '../../../components/hook-form';
 import { useAuthContext } from 'src/auth/useAuthContext';
 import { PATH_DASHBOARD } from '../../../routes/paths';
+import { useOutlet } from 'src/contexts/OutletContext';
 // ----------------------------------------------------------------------
 
 type FormValuesProps = {
@@ -103,6 +104,7 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
   // const [companyID, setCompanyID] = useState<string | null>(null);
 
   const { user } = useAuthContext();
+  const { outletId } = useOutlet();
   const companyID = user?.companyID;
 
   const NewUserSchema = Yup.object().shape({
@@ -271,6 +273,7 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
         billDiscountPercentage: billDiscountPercentage || 0,
         date: formattedDate,
         companyID,
+        outletId: outletId === 'combined' ? undefined : outletId,
       };
 
       if (isEdit) {

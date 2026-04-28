@@ -3,11 +3,13 @@ import axios from "src/utils/axios";
 type createUser = {
   userName: string;
   email: string;
-  password: string;
+  password?: string;
+  pin?: string;
   phoneNumber: string;
   emergencyPhoneNumber: string;
   role: string;
   itemSelect: string;
+  assignedOutletId?: 'AHANGAMA' | 'ARUGAM_BAY' | null;
 }
 
   const createUserApi = async (payload: createUser, boolValue:boolean) => {

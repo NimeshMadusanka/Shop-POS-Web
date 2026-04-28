@@ -169,6 +169,7 @@ payrun: {
   },
   cashier: {
     root: path(ROOTS_DASHBOARD, '/cashier'),
+    summary: path(ROOTS_DASHBOARD, '/cashier/summary'),
   },
   analytics: {
     root: path(ROOTS_DASHBOARD, '/analytics'),

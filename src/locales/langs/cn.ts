@@ -6,6 +6,12 @@
 // ----------------------------------------------------------------------
 
 const cn = {
+  outlet_a: 'Ahangama',
+  outlet_b: 'Arugam Bay',
+  outlet_required: '需要选择门店',
+  outlet_scope_violation: '不允许跨门店操作',
+  combined_view: '合并视图',
+  viewing_outlet: '当前门店',
   demo: {
     title: `Chinese`,
     introduction: `Lorem Ipsum 只是印刷和排版行业的虚拟文本。 自 1500 年代以来，Lorem Ipsum 一直是行业的标准虚拟文本，当时一位不知名的印刷商采用了一种类型的厨房并将其加扰以制作类型样本书。 它不仅经历了五个世纪，而且经历了电子排版的飞跃，基本保持不变。 它在 1960 年代随着包含 Lorem Ipsum 段落的 Letraset 表的发布而流行起来，最近还随着 Aldus PageMaker 等桌面出版软件（包括 Lorem Ipsum 的版本）而普及.`,

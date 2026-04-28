@@ -5,6 +5,7 @@ type SendDailyReportParams = {
   date?: string;
   shopId?: string;
   brandId?: string;
+  outletId?: string;
 };
 
 type GetPDFReportParams = {
@@ -12,6 +13,7 @@ type GetPDFReportParams = {
   dateFrom?: string;
   dateTo?: string;
   brandId?: string;
+  outletId?: string;
 };
 
 type ReportData = {
@@ -45,6 +47,7 @@ type ReportData = {
     totalMissing?: number;
     totalMissingAmount?: number;
   } | null;
+  scope?: 'combined' | 'AHANGAMA' | 'ARUGAM_BAY';
   lowStockItems?: Array<{
     itemName: string;
     brandName: string;

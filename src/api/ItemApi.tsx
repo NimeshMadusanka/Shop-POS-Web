@@ -6,6 +6,7 @@ type CreateItem = {
   itemPrice: string;
   itemDuration: string;
   stockQuantity?: number;
+  outletId?: 'AHANGAMA' | 'ARUGAM_BAY' | 'combined';
 };
 
 const createItemApi = async (payload: CreateItem, boolValue: boolean) => {
@@ -18,12 +19,15 @@ const updateItemApi = async (payload: CreateItem, id: string, boolValue: boolean
   return response?.data;
 };
 
-const getItemData = async (companyID: string, brandId?: string) => {
+const getItemData = async (companyID: string, brandId?: string, outletId?: string) => {
   if (!companyID) throw new Error('companyID is required');
 
   const params: any = { companyID };
   if (brandId) {
     params.brandId = brandId;
+  }
+  if (outletId) {
+    params.outletId = outletId;
   }
 
   const response = await axios.get('/item', {
