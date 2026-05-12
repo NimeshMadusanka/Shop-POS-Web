@@ -61,9 +61,10 @@ const ROLE_OPTIONS = [
 ];
 
 const TABLE_HEAD = [
-    { id: 'discountName', label: 'Discount Name', align: 'left' },
+  { id: 'discountName', label: 'Discount Name', align: 'left' },
   { id: 'itemName', label: 'Product Name', align: 'left' },
   { id: 'offPercentage', label: 'Off Percentage(%)', align: 'left' },
+  { id: 'outletId', label: 'Outlet', align: 'left' },
   { id: 'description', label: 'Description', align: 'left' },
   { id: '', label: 'Action', align: 'left' },
   { id: '' },
@@ -94,6 +95,7 @@ export default function CustomerListPage() {
   const [filterName, setFilterName] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterOutlet, setFilterOutlet] = useState('all');
   const [dataLoad, setDataLoad] = useState(false);
   const [currentTab, setCurrentTab] = useState('table');
 
@@ -104,7 +106,8 @@ export default function CustomerListPage() {
   const loadData = useCallback(async () => {
     setDataLoad(true);
     const companyID = user?.companyID;
-    const data = await getCusloyaltyData(companyID);
+    // Always fetch combined so local outlet filter can show All/A/B correctly.
+    const data = await getCusloyaltyData(companyID, 'combined');
     setTableData(data);
     setDataLoad(false);
   }, [user?.companyID]);
@@ -119,12 +122,14 @@ export default function CustomerListPage() {
     filterName,
     filterRole,
     filterStatus,
+    filterOutlet,
   });
 
   const dataInPage = dataFiltered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
   const denseHeight = 72;
 
-  const isFiltered = filterName !== '' || filterRole !== 'all' || filterStatus !== 'all';
+  const isFiltered =
+    filterName !== '' || filterRole !== 'all' || filterStatus !== 'all' || filterOutlet !== 'all';
   const isNotFound =
     (!dataFiltered.length && !!filterName) ||
     (!dataFiltered.length && !!filterRole) ||
@@ -155,6 +160,7 @@ export default function CustomerListPage() {
     setFilterName('');
     setFilterRole('all');
     setFilterStatus('all');
+    setFilterOutlet('all');
   };
 
   return (
@@ -183,9 +189,14 @@ export default function CustomerListPage() {
               isFiltered={isFiltered}
               filterName={filterName}
               filterRole={filterRole}
+              filterOutlet={filterOutlet}
               optionsRole={ROLE_OPTIONS}
               onFilterName={handleFilterName}
               onFilterRole={handleFilterRole}
+              onFilterOutlet={(event) => {
+                setPage(0);
+                setFilterOutlet(event.target.value);
+              }}
               onResetFilter={handleResetFilter}
             />
 
@@ -253,6 +264,9 @@ export default function CustomerListPage() {
                     <Typography variant="body2" color="text.secondary">
                       {row.description}
                     </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Outlet: {row.outletId || '-'}
+                    </Typography>
                   </CardContent>
                 </Card>
               </Grid>
@@ -272,12 +286,14 @@ function applyFilter({
   filterName,
   filterStatus,
   filterRole,
+  filterOutlet,
 }: {
   inputData: NewCusloyaltyCreate[];
   comparator: (a: any, b: any) => number;
   filterName: string;
   filterStatus: string;
   filterRole: string;
+  filterOutlet: string;
 }) {
   const stabilizedThis = inputData.map((el, index) => [el, index] as const);
 
@@ -293,6 +309,10 @@ function applyFilter({
     inputData = inputData.filter(
       (payment) => payment?.itemName?.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
     );
+  }
+
+  if (filterOutlet !== 'all') {
+    inputData = inputData.filter((row) => row?.outletId === filterOutlet);
   }
 
   return inputData;

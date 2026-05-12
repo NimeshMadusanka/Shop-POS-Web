@@ -1,14 +1,13 @@
 import * as Yup from 'yup';
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo } from 'react';
 import { createBrandApi, updateBrandApi } from 'src/api/BrandApi';
-import { getProviderData } from 'src/api/ProviderApi';
 // form
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 // @mui
 import { useNavigate } from 'react-router-dom';
 import { LoadingButton } from '@mui/lab';
-import { Box, Card, Grid, Stack, Autocomplete, TextField } from '@mui/material';
+import { Box, Card, Grid, Stack } from '@mui/material';
 // components
 import { useSnackbar } from '../../../components/snackbar';
 import { useAuthContext } from 'src/auth/useAuthContext';
@@ -19,15 +18,9 @@ import { PATH_DASHBOARD } from '../../../routes/paths';
 type FormValuesProps = {
   brandName: string;
   description: string;
-  providerId: string;
+  commissionPercent: number;
   id: string;
 };
-
-interface Provider {
-  _id: string;
-  providerName: string;
-  contactEmail: string;
-}
 
 type Props = {
   isEdit?: boolean;
@@ -35,8 +28,7 @@ type Props = {
     _id: string;
     brandName: string;
     description?: string;
-    providerId?: string;
-    providerName?: string;
+    commissionPercent?: number;
   };
 };
 
@@ -45,7 +37,6 @@ export default function BrandNewEditForm({ isEdit = false, userData }: Props) {
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const companyID = user?.companyID;
-  const [providerData, setProviderData] = useState<Provider[]>([]);
 
   const NewUserSchema = Yup.object().shape({
     brandName: Yup.string()
@@ -57,13 +48,18 @@ export default function BrandNewEditForm({ isEdit = false, userData }: Props) {
     description: Yup.string()
       .trim()
       .max(200, 'Must be 200 characters or less'),
+    commissionPercent: Yup.number()
+      .typeError('Commission % must be a number')
+      .min(0, 'Cannot be negative')
+      .max(100, 'Cannot exceed 100')
+      .required('Commission % is required'),
   });
 
   const defaultValues = useMemo(
     () => ({
       brandName: userData?.brandName || '',
       description: userData?.description || '',
-      providerId: userData?.providerId || '',
+      commissionPercent: Number(userData?.commissionPercent) || 0,
       id: userData?._id || '',
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,24 +73,8 @@ export default function BrandNewEditForm({ isEdit = false, userData }: Props) {
   const {
     reset,
     handleSubmit,
-    setValue,
-    watch,
     formState: { isSubmitting },
   } = methods;
-
-  const loadProviders = useCallback(async () => {
-    if (!companyID) return;
-    try {
-      const providers = await getProviderData(companyID);
-      setProviderData(providers || []);
-    } catch (error) {
-      console.error('Error loading providers:', error);
-    }
-  }, [companyID]);
-
-  useEffect(() => {
-    loadProviders();
-  }, [loadProviders]);
 
   useEffect(() => {
     if (isEdit && userData) {
@@ -113,13 +93,13 @@ export default function BrandNewEditForm({ isEdit = false, userData }: Props) {
         return;
       }
 
-      const { brandName, description, providerId, id } = data;
+      const { brandName, description, commissionPercent, id } = data;
 
       if (isEdit) {
         const payload = {
           brandName,
           description: description || '',
-          providerId: providerId || null,
+          commissionPercent: Number(commissionPercent) || 0,
         };
         await updateBrandApi(payload, id);
         enqueueSnackbar('Brand updated successfully!');
@@ -127,7 +107,7 @@ export default function BrandNewEditForm({ isEdit = false, userData }: Props) {
         const payload = {
           brandName,
           description: description || '',
-          providerId: providerId || undefined,
+          commissionPercent: Number(commissionPercent) || 0,
           companyID,
         };
         await createBrandApi(payload);
@@ -157,28 +137,8 @@ export default function BrandNewEditForm({ isEdit = false, userData }: Props) {
               }}
             >
               <RHFTextField required name="brandName" label="Brand Name" />
-              <Autocomplete
-                fullWidth
-                autoHighlight
-                options={providerData}
-                getOptionLabel={(option) => option?.providerName || ''}
-                isOptionEqualToValue={(option, value) => option._id === value._id}
-                value={providerData.find((p) => p._id === watch('providerId')) || null}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Provider (Optional)"
-                    inputProps={{
-                      ...params.inputProps,
-                      autoComplete: 'new-password',
-                    }}
-                  />
-                )}
-                onChange={(event, newValue) => {
-                  setValue('providerId', newValue?._id || '');
-                }}
-              />
               <RHFTextField name="description" label="Description" />
+              <RHFTextField name="commissionPercent" label="Commission (%)" type="number" />
             </Box>
 
             <Stack alignItems="flex-end" sx={{ mt: 3 }}>

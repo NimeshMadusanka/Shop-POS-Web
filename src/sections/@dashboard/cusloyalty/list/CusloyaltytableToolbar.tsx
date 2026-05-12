@@ -1,5 +1,5 @@
 // @mui
-import { Stack, InputAdornment, TextField, Button } from '@mui/material';
+import { Stack, InputAdornment, TextField, Button, MenuItem } from '@mui/material';
 // components
 import Iconify from '../../../../components/iconify';
 
@@ -8,20 +8,24 @@ import Iconify from '../../../../components/iconify';
 type Props = {
   filterName: string;
   filterRole: string;
+  filterOutlet: string;
   isFiltered: boolean;
   optionsRole: string[];
   onResetFilter: VoidFunction;
   onFilterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onFilterRole: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onFilterOutlet: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 export default function UserTableToolbar({
   isFiltered,
   filterName,
   filterRole,
+  filterOutlet,
   optionsRole,
   onFilterName,
   onFilterRole,
+  onFilterOutlet,
   onResetFilter,
 }: Props) {
   return (
@@ -48,6 +52,19 @@ export default function UserTableToolbar({
           ),
         }}
       />
+
+      <TextField
+        fullWidth
+        select
+        label="Outlet"
+        value={filterOutlet}
+        onChange={onFilterOutlet}
+        sx={{ minWidth: 180, maxWidth: 220 }}
+      >
+        <MenuItem value="all">All</MenuItem>
+        <MenuItem value="AHANGAMA">Ahangama</MenuItem>
+        <MenuItem value="ARUGAM_BAY">Arugam Bay</MenuItem>
+      </TextField>
 
       {isFiltered && (
         <Button

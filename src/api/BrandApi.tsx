@@ -4,6 +4,7 @@ type CreateBrand = {
   brandName: string;
   description?: string;
   providerId?: string;
+  commissionPercent?: number;
   companyID: string;
 };
 
@@ -11,6 +12,7 @@ type UpdateBrand = {
   brandName?: string;
   description?: string;
   providerId?: string | null;
+  commissionPercent?: number;
 };
 
 const getBrandData = async (companyID: string) => {

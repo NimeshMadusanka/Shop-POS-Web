@@ -159,24 +159,24 @@ const navConfigAdmin = [
           { title: 'View Brands', path: PATH_DASHBOARD.brand.list },
         ],
       },
-      {
-        title: 'Provider',
-        path: PATH_DASHBOARD.provider.root,
-        icon: ICONS.user,
-        children: [
-          { title: 'Add Provider', path: PATH_DASHBOARD.provider.new },
-          { title: 'View Providers', path: PATH_DASHBOARD.provider.list },
-        ],
-      },
-      {
-        title: 'Shop',
-        path: PATH_DASHBOARD.shop.root,
-        icon: ICONS.ecommerce,
-        children: [
-          { title: 'Add Shop', path: PATH_DASHBOARD.shop.new },
-          { title: 'View Shops', path: PATH_DASHBOARD.shop.list },
-        ],
-      },
+      // {
+      //   title: 'Provider',
+      //   path: PATH_DASHBOARD.provider.root,
+      //   icon: ICONS.user,
+      //   children: [
+      //     { title: 'Add Provider', path: PATH_DASHBOARD.provider.new },
+      //     { title: 'View Providers', path: PATH_DASHBOARD.provider.list },
+      //   ],
+      // },
+      // {
+      //   title: 'Shop',
+      //   path: PATH_DASHBOARD.shop.root,
+      //   icon: ICONS.ecommerce,
+      //   children: [
+      //     { title: 'Add Shop', path: PATH_DASHBOARD.shop.new },
+      //     { title: 'View Shops', path: PATH_DASHBOARD.shop.list },
+      //   ],
+      // },
 
    
       // ROLE SECTION - COMMENTED OUT
@@ -201,9 +201,14 @@ const navConfigCashier = [
     subheader: 'Cashier',
     items: [
       {
-        title: 'Cashier',
+        title: 'Cashier Billing',
         path: PATH_DASHBOARD.cashier.root,
         icon: ICONS.invoice,
+      },
+      {
+        title: 'Daily Sales Summary',
+        path: PATH_DASHBOARD.cashier.summary,
+        icon: ICONS.analytics,
       },
     ],
   },

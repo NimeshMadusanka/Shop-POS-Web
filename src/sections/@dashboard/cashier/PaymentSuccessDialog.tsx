@@ -4,6 +4,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import { generateReceiptPDF } from './ReceiptPDF';
+import { generateReceiptEscPos } from './ReceiptEscPos';
 
 type Props = {
   open: boolean;
@@ -20,13 +21,35 @@ export default function PaymentSuccessDialog({
   onPrintAndSave,
   onSaveOnly,
 }: Props) {
-  const handlePrint = async () => {
+  const handlePdfPrint = async () => {
     if (paymentData) {
       const doc = await generateReceiptPDF(paymentData);
       doc.autoPrint();
       window.open(doc.output('bloburl'), '_blank');
       onPrintAndSave();
     }
+  };
+
+  const handlePosPrint = () => {
+    if (!paymentData) return;
+
+    const escPosData = generateReceiptEscPos(paymentData);
+
+    try {
+      const blob = new Blob([escPosData], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `receipt_${paymentData.invoiceNumber || 'receipt'}.escpos`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export ESC/POS data:', error);
+    }
+
+    onPrintAndSave();
   };
 
   const handleSave = async () => {
@@ -63,8 +86,8 @@ export default function PaymentSuccessDialog({
           </Typography>
         </Box>
       </DialogContent>
-      <DialogActions>
-        <Stack direction="row" spacing={2} sx={{ width: '100%', p: 2 }}>
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Stack sx={{ width: '100%' }} spacing={1.5}>
           <Button
             onClick={handleSave}
             variant="outlined"
@@ -75,14 +98,24 @@ export default function PaymentSuccessDialog({
             Save Only
           </Button>
           <Button
-            onClick={handlePrint}
+            onClick={handlePosPrint}
             variant="contained"
             color="primary"
             startIcon={<PrintIcon />}
             fullWidth
             sx={{ py: 1.5 }}
           >
-            Print & Save
+            POS Print (ESC/POS)
+          </Button>
+          <Button
+            onClick={handlePdfPrint}
+            variant="contained"
+            color="primary"
+            startIcon={<PrintIcon />}
+            fullWidth
+            sx={{ py: 1.5 }}
+          >
+            PDF Print & Save
           </Button>
         </Stack>
       </DialogActions>

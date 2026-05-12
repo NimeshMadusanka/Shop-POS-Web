@@ -26,11 +26,11 @@ import { getCusloyaltyData } from '../../../api/CusloyaltyApi';
 import { createPaymentApi } from '../../../api/PaymentApi';
 import { getBrandData } from '../../../api/BrandApi';
 import { sendDailyReportApi } from '../../../api/EmailReportApi';
-import RefundDialog from './RefundDialog';
 import CashierPinDialog from './CashierPinDialog';
 import PaymentEntryDialog from './PaymentEntryDialog';
 import PaymentSuccessDialog from './PaymentSuccessDialog';
 import { getShopData } from '../../../api/ShopApi';
+import RefundFlowDialog from './RefundFlowDialog';
 
 interface Item {
   _id: string;
@@ -45,6 +45,7 @@ interface Brand {
   _id: string;
   brandName: string;
   description?: string;
+  commissionPercent?: number;
 }
 
 interface CartItem {
@@ -55,6 +56,7 @@ interface CartItem {
   offPercentage?: number;
   brandId?: string;
   brandName?: string;
+  commissionPercent?: number;
 }
 
 interface Discount {
@@ -80,13 +82,14 @@ export default function CashierPaymentView() {
   const [quantity, setQuantity] = useState<string>('');
   const [billDiscountPercentage, setBillDiscountPercentage] = useState<number | ''>(0);
   const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
-  const [openRefundDialog, setOpenRefundDialog] = useState(false);
+  const [openRefundFlowDialog, setOpenRefundFlowDialog] = useState(false);
   const [openPinDialog, setOpenPinDialog] = useState(false);
-  const [pendingRefundAction, setPendingRefundAction] = useState(false);
+  const [pendingRefundAction, setPendingRefundAction] = useState<boolean>(false);
   const [openPaymentSuccessDialog, setOpenPaymentSuccessDialog] = useState(false);
   const [lastPaymentData, setLastPaymentData] = useState<any>(null);
   const [shopInfo, setShopInfo] = useState<any>(null);
   const [sendingReport, setSendingReport] = useState(false);
+  const [, setSummaryKey] = useState(0);
   // Admin unlock state removed - not currently used for conditional features
 
   // Load data
@@ -190,6 +193,7 @@ export default function CashierPaymentView() {
         offPercentage: discount?.offPercentage || 0,
         brandId: selectedProduct.brandId,
         brandName: brand?.brandName || '',
+        commissionPercent: Number(brand?.commissionPercent) || 0,
       };
       setCartItems([...cartItems, newItem]);
     }
@@ -290,6 +294,14 @@ export default function CashierPaymentView() {
       const billDiscountAmount =
         (subtotalAfterItemDiscount * (Number(billDiscountPercentage) || 0)) / 100;
       const grandTotal = subtotalAfterItemDiscount - billDiscountAmount;
+      const commissionAmount = cartItems.reduce((sum, item) => {
+        const brand = brandData.find((b) => b._id === item.brandId);
+        const commissionPercent = Number(item.commissionPercent ?? brand?.commissionPercent) || 0;
+        const itemSubtotal = item.itemPrice * item.quantity;
+        const itemDiscountAmount = (itemSubtotal * (item.offPercentage || 0)) / 100;
+        const itemNet = itemSubtotal - itemDiscountAmount;
+        return sum + (itemNet * commissionPercent) / 100;
+      }, 0);
 
       const payload: any = {
         items: formattedItems,
@@ -302,6 +314,8 @@ export default function CashierPaymentView() {
         creditPaid: finalCreditPaid,
         debitPaid: finalDebitPaid,
         invoiceNumber,
+        commission: commissionAmount > 0,
+        commissionAmount: Number(commissionAmount.toFixed(2)),
       };
 
       const savedPayment = await createPaymentApi(payload, true);
@@ -328,6 +342,7 @@ export default function CashierPaymentView() {
 
       // Store payment data and show success dialog
       setLastPaymentData(paymentData);
+      setSummaryKey((prev) => prev + 1);
       setOpenPaymentDialog(false);
       // Reload item data to update stock quantities immediately after payment
       loadData();
@@ -387,7 +402,7 @@ export default function CashierPaymentView() {
       setPendingRefundAction(true);
       setOpenPinDialog(true);
     } else {
-      setOpenRefundDialog(true);
+      setOpenRefundFlowDialog(true);
     }
   };
 
@@ -701,16 +716,6 @@ export default function CashierPaymentView() {
         onConfirm={handlePaymentConfirm}
       />
 
-      <RefundDialog
-        open={openRefundDialog}
-        onClose={() => setOpenRefundDialog(false)}
-        companyID={companyID || ''}
-        onRefundSuccess={() => {
-          // Refresh item data to show updated stock after refund
-          loadData();
-        }}
-      />
-
       <CashierPinDialog
         open={openPinDialog}
         onClose={() => {
@@ -720,9 +725,9 @@ export default function CashierPaymentView() {
         onSuccess={() => {
           setOpenPinDialog(false);
           if (pendingRefundAction) {
-            setOpenRefundDialog(true);
-            setPendingRefundAction(false);
+            setOpenRefundFlowDialog(true);
           }
+          setPendingRefundAction(false);
         }}
         title="Cashier PIN Verification"
         description="Enter your PIN to proceed with refund operation"
@@ -738,6 +743,16 @@ export default function CashierPaymentView() {
         paymentData={lastPaymentData}
         onPrintAndSave={handlePrintAndSave}
         onSaveOnly={handleSaveOnly}
+      />
+
+      <RefundFlowDialog
+        open={openRefundFlowDialog}
+        onClose={() => setOpenRefundFlowDialog(false)}
+        companyID={companyID || ''}
+        onRefundSuccess={() => {
+          loadData();
+          setSummaryKey((prev) => prev + 1);
+        }}
       />
     </Box>
   );

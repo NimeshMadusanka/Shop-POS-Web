@@ -46,7 +46,7 @@ export default function ItemTableRow({
   onDeleteRow,
   onStockUpdate,
 }: Props) {
-  const { itemName, itemCategory, itemPrice, itemDuration, stockQuantity, _id } = row;
+  const { itemName, itemCategory, itemPrice, itemDuration, stockQuantity, outletId, _id } = row;
   const stock = stockQuantity ?? 0;
   const isLowStock = stock < 20;
   const [openDialog, setOpenDialog] = useState(false);
@@ -151,6 +151,7 @@ export default function ItemTableRow({
         <TableCell align="left">{itemCategory}</TableCell>
         <TableCell align="left">{itemPrice}</TableCell>
         <TableCell align="left">{itemDuration}</TableCell>
+        <TableCell align="left">{outletId || '-'}</TableCell>
         <TableCell align="left">
           <Stack direction="row" spacing={1} alignItems="center">
             <Chip

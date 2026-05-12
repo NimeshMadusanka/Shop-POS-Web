@@ -1,7 +1,16 @@
 import { Helmet } from 'react-helmet-async';
 import { useState, useEffect, useCallback } from 'react';
 // @mui
-import { Card, Table, Divider, TableBody, Container, TableContainer, Button, Stack } from '@mui/material';
+import {
+  Card,
+  Table,
+  Divider,
+  TableBody,
+  Container,
+  TableContainer,
+  Button,
+  Stack,
+} from '@mui/material';
 import { getStockActivityData } from 'src/api/AnalyticsApi';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -23,6 +32,7 @@ import {
 import Loader from '../../components/loading-screen';
 import { useAuthContext } from 'src/auth/useAuthContext';
 import Iconify from '../../components/iconify';
+import { useOutlet } from 'src/contexts/OutletContext';
 // sections
 import { AnalyticsTableRow, AnalyticstableToolbar } from '../../sections/@dashboard/analytics/list';
 
@@ -70,6 +80,7 @@ export default function AnalyticsPage() {
   const [filterDateFrom, setFilterDateFrom] = useState<string>('');
   const [filterDateTo, setFilterDateTo] = useState<string>('');
   const { user } = useAuthContext();
+  const { outletId } = useOutlet();
   const [dataLoad, setDataLoad] = useState(false);
 
   // Get unique items for filter dropdown
@@ -118,14 +129,15 @@ export default function AnalyticsPage() {
     setDataLoad(true);
     const companyID = user?.companyID;
     try {
-      const data = await getStockActivityData(companyID);
+      const outletParam = outletId === 'combined' ? undefined : outletId;
+      const data = await getStockActivityData(companyID, outletParam);
       setTableData(data);
     } catch (error) {
       console.error('Error loading analytics data:', error);
     } finally {
       setDataLoad(false);
     }
-  }, [user?.companyID]);
+  }, [outletId, user?.companyID]);
 
   useEffect(() => {
     loadData();

@@ -135,6 +135,7 @@ import {
   PaymentListPage,
   PaymentEditPage,
   CashierPage,
+  CashierDailySummaryPage,
   AnalyticsPage,
   SalesReportPage,
   EmailReportPage,
@@ -331,7 +332,10 @@ export default function Router() {
         },
         {
           path: 'cashier',
-          element: <CashierPage />,
+          children: [
+            { index: true, element: <CashierPage /> },
+            { path: 'summary', element: <CashierDailySummaryPage /> },
+          ],
         },
         {
           path: 'analytics',

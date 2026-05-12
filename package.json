@@ -4,7 +4,7 @@
   "version": "4.3.0",
   "description": "Cra & Typescript",
   "private": true,
-  "homepage": ".",
+  "homepage": "/",
   "main": "electron.js",
   "scripts": {
     "start": "react-scripts start",

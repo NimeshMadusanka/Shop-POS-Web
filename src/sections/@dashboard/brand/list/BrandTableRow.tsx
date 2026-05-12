@@ -13,8 +13,7 @@ type Props = {
     _id: string;
     brandName: string;
     description?: string;
-    providerId?: string;
-    providerName?: string;
+    commissionPercent?: number;
   };
   selected: boolean;
   onEditRow: VoidFunction;
@@ -29,7 +28,7 @@ export default function BrandTableRow({
   onEditRow,
   onDeleteRow,
 }: Props) {
-  const { brandName, description, providerName, _id } = row;
+  const { brandName, description, commissionPercent, _id } = row;
   const { enqueueSnackbar } = useSnackbar();
 
   const handleDelete = async () => {
@@ -52,7 +51,7 @@ export default function BrandTableRow({
 
       <TableCell>
         <Typography variant="body2" noWrap>
-          {providerName || '-'}
+          {(Number(commissionPercent) || 0).toFixed(2)}%
         </Typography>
       </TableCell>
 

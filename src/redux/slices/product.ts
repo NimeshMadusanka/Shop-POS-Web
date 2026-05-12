@@ -196,7 +196,8 @@ export function getProducts() {
   return async (dispatch: Dispatch) => {
     dispatch(slice.actions.startLoading());
     try {
-      const response = await axios.get('/api/products');
+      const outletId = localStorage.getItem('activeOutletId');
+      const response = await axios.get('/api/products', { params: { outletId } });
       dispatch(slice.actions.getProductsSuccess(response.data.products));
     } catch (error) {
       dispatch(slice.actions.hasError(error));
@@ -210,8 +211,9 @@ export function getProduct(name: string) {
   return async (dispatch: Dispatch) => {
     dispatch(slice.actions.startLoading());
     try {
+      const outletId = localStorage.getItem('activeOutletId');
       const response = await axios.get('/api/products/product', {
-        params: { name },
+        params: { name, outletId },
       });
       dispatch(slice.actions.getProductSuccess(response.data.product));
     } catch (error) {

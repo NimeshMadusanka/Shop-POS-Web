@@ -31,7 +31,7 @@ import { BrandTableToolbar, BrandTableRow } from '../../sections/@dashboard/bran
 
 const TABLE_HEAD = [
   { id: 'brandName', label: 'Brand Name', align: 'left' },
-  { id: 'providerName', label: 'Provider', align: 'left' },
+  { id: 'commissionPercent', label: 'Commission %', align: 'left' },
   { id: 'description', label: 'Description', align: 'left' },
   { id: '', label: 'Action', align: 'center' },
 ];
@@ -84,8 +84,7 @@ export default function BrandListPage() {
         _id: row._id,
         brandName: row.brandName,
         description: row.description,
-        providerId: row.providerId,
-        providerName: row.providerName,
+        commissionPercent: row.commissionPercent,
       }
     });
   };
