@@ -49,10 +49,10 @@ export default function BrandNewEditForm({ isEdit = false, userData }: Props) {
       .trim()
       .max(200, 'Must be 200 characters or less'),
     commissionPercent: Yup.number()
-      .typeError('Commission % must be a number')
+      .typeError('Shop commission % must be a number')
       .min(0, 'Cannot be negative')
       .max(100, 'Cannot exceed 100')
-      .required('Commission % is required'),
+      .required('Shop commission % is required'),
   });
 
   const defaultValues = useMemo(
@@ -138,7 +138,12 @@ export default function BrandNewEditForm({ isEdit = false, userData }: Props) {
             >
               <RHFTextField required name="brandName" label="Brand Name" />
               <RHFTextField name="description" label="Description" />
-              <RHFTextField name="commissionPercent" label="Commission (%)" type="number" />
+              <RHFTextField
+                name="commissionPercent"
+                label="Shop Commission (%)"
+                type="number"
+                helperText="Percentage of net sales the shop keeps; remainder goes to the brand."
+              />
             </Box>
 
             <Stack alignItems="flex-end" sx={{ mt: 3 }}>

@@ -34,6 +34,8 @@ import { useOutlet } from '../../contexts/OutletContext';
 import {
   AnalyticsWebsiteVisits,
   AnalyticsWidgetSummary,
+  DailyItemActivityTable,
+  DailyItemActivity,
 } from '../../sections/@dashboard/general/analytics';
 
 // ----------------------------------------------------------------------
@@ -52,6 +54,7 @@ export default function GeneralAnalyticsPage() {
     lowStockItemsList: [],
     stockInToday: 0,
     stockOutToday: 0,
+    dailyItemActivity: [] as DailyItemActivity[],
     userVisitChartData: {
       xAxis: {
         name: '',
@@ -245,6 +248,13 @@ export default function GeneralAnalyticsPage() {
                   yAxisLabel: 'Amount',
                   colors: ['#FF9800', '#4caf50', '#f44336'],
                 }}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={12} lg={12}>
+              <DailyItemActivityTable
+                activities={dashboardData.dailyItemActivity || []}
+                showOutlet={outletId === 'combined'}
               />
             </Grid>
 
