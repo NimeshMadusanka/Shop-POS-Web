@@ -1,19 +1,17 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Card,
   Box,
   Typography,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
   Chip,
   Collapse,
   IconButton,
 } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import AlignedGroupedTables from 'src/components/table/AlignedGroupedTables';
+import { OUTLETS, OutletId } from 'src/config/outlets';
+import { groupByOutletAndBrand } from 'src/utils/groupByOutletAndBrand';
 
 // ----------------------------------------------------------------------
 
@@ -26,11 +24,8 @@ export type DailyItemActivity = {
   activityLabel: string;
   operationDate: string;
   outletId?: string | null;
-};
-
-type Props = {
-  activities: DailyItemActivity[];
-  showOutlet?: boolean;
+  brandName?: string | null;
+  brandId?: string | null;
 };
 
 const ACTIVITY_COLORS: Record<string, 'success' | 'error' | 'warning' | 'default'> = {
@@ -39,8 +34,34 @@ const ACTIVITY_COLORS: Record<string, 'success' | 'error' | 'warning' | 'default
   'Stock In': 'success',
 };
 
-export default function DailyItemActivityTable({ activities, showOutlet = false }: Props) {
+type Props = {
+  activities: DailyItemActivity[];
+  isCombinedOutlets?: boolean;
+  activeOutletId?: OutletId;
+  brandId?: string | null;
+};
+
+export default function DailyItemActivityTable({
+  activities,
+  isCombinedOutlets = false,
+  activeOutletId = 'AHANGAMA',
+  brandId = null,
+}: Props) {
   const [open, setOpen] = useState(true);
+
+  const outletsToShow = useMemo<OutletId[]>(
+    () => (isCombinedOutlets ? [...OUTLETS] : [activeOutletId]),
+    [isCombinedOutlets, activeOutletId]
+  );
+
+  const groupedSections = useMemo(
+    () =>
+      groupByOutletAndBrand<DailyItemActivity>(activities, {
+        outletsToShow,
+        brandId,
+      }),
+    [activities, outletsToShow, brandId]
+  );
 
   const formatTime = (dateString: string) =>
     new Date(dateString).toLocaleString('en-US', {
@@ -76,43 +97,49 @@ export default function DailyItemActivityTable({ activities, showOutlet = false 
         </Box>
 
         <Collapse in={open}>
-          {activities.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              No item activity recorded today.
-            </Typography>
-          ) : (
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Item Name</TableCell>
-                  <TableCell align="right">Qty</TableCell>
-                  <TableCell>Activity</TableCell>
-                  {showOutlet && <TableCell>Outlet</TableCell>}
-                  <TableCell>Time</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {activities.map((activity) => (
-                  <TableRow key={activity._id} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2">{activity.itemName}</Typography>
-                    </TableCell>
-                    <TableCell align="right">{activity.amount}</TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={activity.activityLabel}
-                        color={ACTIVITY_COLORS[activity.activityLabel] || 'default'}
-                        variant="filled"
-                      />
-                    </TableCell>
-                    {showOutlet && <TableCell>{activity.outletId || '—'}</TableCell>}
-                    <TableCell>{formatTime(activity.operationDate)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <AlignedGroupedTables
+            sections={groupedSections}
+            columns={[
+              {
+                id: 'itemName',
+                label: 'Item Name',
+                width: '38%',
+                render: (row) => (
+                  <Typography variant="subtitle2" component="span">
+                    {row.itemName}
+                  </Typography>
+                ),
+              },
+              {
+                id: 'amount',
+                label: 'Qty',
+                width: '12%',
+                align: 'right',
+                render: (row) => row.amount,
+              },
+              {
+                id: 'activity',
+                label: 'Activity',
+                width: '22%',
+                render: (row) => (
+                  <Chip
+                    size="small"
+                    label={row.activityLabel}
+                    color={ACTIVITY_COLORS[row.activityLabel] || 'default'}
+                    variant="filled"
+                  />
+                ),
+              },
+              {
+                id: 'time',
+                label: 'Time',
+                width: '28%',
+                render: (row) => formatTime(row.operationDate),
+              },
+            ]}
+            emptyMessage="No item activity recorded today."
+            brandHeaderColor="primary.main"
+          />
         </Collapse>
       </Box>
     </Card>

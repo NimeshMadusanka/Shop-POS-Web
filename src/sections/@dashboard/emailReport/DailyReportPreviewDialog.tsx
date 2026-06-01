@@ -19,7 +19,10 @@ import CloseIcon from '@mui/icons-material/Close';
 import { LoadingButton } from '@mui/lab';
 import { ReportData } from 'src/api/EmailReportApi';
 import { PaymentMethodTotals, ReportFilter } from 'src/utils/dailyReportPdf';
-import { groupLowStockByBrand, getLowStockStatus } from 'src/utils/groupLowStockByBrand';
+import { getLowStockStatus } from 'src/utils/groupLowStockByBrand';
+import { groupLowStockByOutletAndBrand } from 'src/utils/groupLowStockByOutletAndBrand';
+import AlignedGroupedTables from 'src/components/table/AlignedGroupedTables';
+import { OUTLETS, OutletId } from 'src/config/outlets';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -29,6 +32,9 @@ type Props = {
   reportData: ReportData | null;
   reportFilter: ReportFilter;
   isBrandFiltered: boolean;
+  isCombinedOutlets?: boolean;
+  activeOutletId?: OutletId;
+  selectedBrandId?: string | null;
   paymentMethodTotals: PaymentMethodTotals | null;
   onDownload: () => void;
   downloadLoading?: boolean;
@@ -88,6 +94,9 @@ export default function DailyReportPreviewDialog({
   reportData,
   reportFilter,
   isBrandFiltered,
+  isCombinedOutlets = false,
+  activeOutletId = 'AHANGAMA',
+  selectedBrandId = null,
   paymentMethodTotals,
   onDownload,
   downloadLoading = false,
@@ -272,41 +281,43 @@ export default function DailyReportPreviewDialog({
                 <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                   Low Stock Alerts
                 </Typography>
-                {groupLowStockByBrand(reportData.lowStockItems).map((group) => (
-                  <Box key={group.brandName} sx={{ mb: 2 }}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ fontWeight: 700, color: 'error.main', mb: 0.5 }}
-                    >
-                      {group.brandName}
-                    </Typography>
-                    <Box sx={{ overflowX: 'auto' }}>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Item</TableCell>
-                            <TableCell>Category</TableCell>
-                            <TableCell>Stock</TableCell>
-                            <TableCell>Status</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {group.items.map((item, idx) => {
-                            const stock = item.stockQuantity || 0;
-                            return (
-                              <TableRow key={`${group.brandName}-${item.itemName}-${idx}`}>
-                                <TableCell>{item.itemName}</TableCell>
-                                <TableCell>{item.itemCategory || 'N/A'}</TableCell>
-                                <TableCell>{stock}</TableCell>
-                                <TableCell>{getLowStockStatus(stock)}</TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </Box>
-                  </Box>
-                ))}
+                <AlignedGroupedTables
+                  sections={groupLowStockByOutletAndBrand(
+                    reportData.lowStockItems,
+                    isCombinedOutlets
+                      ? [...OUTLETS]
+                      : [((reportData.scope as OutletId) || activeOutletId)],
+                    selectedBrandId
+                  )}
+                  columns={[
+                    {
+                      id: 'item',
+                      label: 'Item',
+                      width: '38%',
+                      render: (item) => item.itemName,
+                    },
+                    {
+                      id: 'category',
+                      label: 'Category',
+                      width: '27%',
+                      render: (item) => item.itemCategory || 'N/A',
+                    },
+                    {
+                      id: 'stock',
+                      label: 'Stock',
+                      width: '15%',
+                      align: 'right',
+                      render: (item) => item.stockQuantity ?? 0,
+                    },
+                    {
+                      id: 'status',
+                      label: 'Status',
+                      width: '20%',
+                      render: (item) => getLowStockStatus(item.stockQuantity || 0),
+                    },
+                  ]}
+                  brandHeaderColor="error.main"
+                />
               </Box>
             )}
 

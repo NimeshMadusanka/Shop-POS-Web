@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { getDashboardData } from 'src/api/Dashboard';
 import {
@@ -30,6 +30,7 @@ import { useSettingsContext } from '../../components/settings';
 import Loader from '../../components/loading-screen';
 import { useAuthContext } from '../../auth/useAuthContext';
 import { useOutlet } from '../../contexts/OutletContext';
+import { OutletId } from 'src/config/outlets';
 // sections
 import {
   AnalyticsWebsiteVisits,
@@ -176,6 +177,16 @@ export default function GeneralAnalyticsPage() {
       )
     : dashboardData.lowStockItemsList || [];
 
+  const displayedDailyItemActivity = useMemo(() => {
+    const activities = dashboardData.dailyItemActivity || [];
+    if (!selectedBrand?._id) return activities;
+    return activities.filter(
+      (activity: DailyItemActivity) =>
+        (activity.brandId && String(activity.brandId) === String(selectedBrand._id)) ||
+        activity.brandName === selectedBrand.brandName
+    );
+  }, [dashboardData.dailyItemActivity, selectedBrand]);
+
   return (
     <>
       <Helmet>
@@ -253,8 +264,10 @@ export default function GeneralAnalyticsPage() {
 
             <Grid item xs={12} md={12} lg={12}>
               <DailyItemActivityTable
-                activities={dashboardData.dailyItemActivity || []}
-                showOutlet={outletId === 'combined'}
+                activities={displayedDailyItemActivity}
+                isCombinedOutlets={outletId === 'combined'}
+                activeOutletId={(outletId === 'combined' ? 'AHANGAMA' : outletId) as OutletId}
+                brandId={selectedBrand?._id}
               />
             </Grid>
 

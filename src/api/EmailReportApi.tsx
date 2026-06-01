@@ -69,6 +69,7 @@ type ReportData = {
     brandName: string;
     itemCategory: string;
     stockQuantity: number;
+    outletId?: string;
   }>;
   missingStockItems?: Array<{
     itemName: string;

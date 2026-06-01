@@ -2,7 +2,9 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import moment, { Moment } from 'moment';
 import { ReportData } from 'src/api/EmailReportApi';
-import { groupLowStockByBrand, getLowStockStatus } from 'src/utils/groupLowStockByBrand';
+import { getLowStockStatus } from 'src/utils/groupLowStockByBrand';
+import { groupLowStockByOutletAndBrand } from 'src/utils/groupLowStockByOutletAndBrand';
+import { OUTLETS, OutletId } from 'src/config/outlets';
 
 export type ReportFilter = 'all' | 'provider-shop' | 'shop-client';
 
@@ -339,37 +341,56 @@ export async function generateDailyReportPdf({
     doc.text('Low Stock Alerts', marginLeft, currentY);
     doc.setTextColor(0, 0, 0);
     currentY += 8;
-    const lowStockBody: any[] = [];
-    groupLowStockByBrand(reportData.lowStockItems).forEach(({ brandName, items }) => {
-      lowStockBody.push([
-        {
-          content: brandName,
-          colSpan: 4,
-          styles: { fillColor: [255, 235, 238], fontStyle: 'bold', fontSize: 9 },
-        },
-      ]);
-      items.forEach((item) => {
-        const stockLevel = item.stockQuantity || 0;
-        lowStockBody.push([
-          truncateText(item.itemName || 'N/A', 30),
-          truncateText(item.itemCategory || 'N/A', 18),
-          String(stockLevel),
-          getLowStockStatus(stockLevel),
-        ]);
-      });
-    });
+    const lowStockOutlets: OutletId[] =
+      reportData.scope === 'combined' ? [...OUTLETS] : [(reportData.scope as OutletId) || 'AHANGAMA'];
 
-    autoTable(doc, {
-      startY: currentY,
-      head: [['Item Name', 'Category', 'Current Stock', 'Status']],
-      body: lowStockBody,
-      theme: 'grid',
-      headStyles: { fillColor: [211, 47, 47], fontSize: 9 },
-      margin: { top: headerReserve, bottom: footerReserve, left: marginLeft, right: 20 },
-      styles: { fontSize: 7, cellPadding: 1.5 },
-    });
-    currentY = (doc as any).lastAutoTable?.finalY || currentY + 50;
-    currentY += 10;
+    groupLowStockByOutletAndBrand(reportData.lowStockItems, lowStockOutlets).forEach(
+      (section) => {
+        ensureSpace(30);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(section.outletLabel, marginLeft, currentY);
+        currentY += 6;
+
+        const lowStockBody: any[] = [];
+        section.brands.forEach(({ brandName, items }) => {
+          lowStockBody.push([
+            {
+              content: brandName,
+              colSpan: 4,
+              styles: { fillColor: [255, 235, 238], fontStyle: 'bold', fontSize: 9 },
+            },
+          ]);
+          items.forEach((item) => {
+            const stockLevel = item.stockQuantity || 0;
+            lowStockBody.push([
+              truncateText(item.itemName || 'N/A', 30),
+              truncateText(item.itemCategory || 'N/A', 18),
+              String(stockLevel),
+              getLowStockStatus(stockLevel),
+            ]);
+          });
+        });
+
+        autoTable(doc, {
+          startY: currentY,
+          head: [['Item Name', 'Category', 'Current Stock', 'Status']],
+          body: lowStockBody,
+          theme: 'grid',
+          headStyles: { fillColor: [211, 47, 47], fontSize: 9 },
+          margin: { top: headerReserve, bottom: footerReserve, left: marginLeft, right: 20 },
+          styles: { fontSize: 7, cellPadding: 1.5 },
+          columnStyles: {
+            0: { cellWidth: 55 },
+            1: { cellWidth: 40 },
+            2: { cellWidth: 28 },
+            3: { cellWidth: 32 },
+          },
+        });
+        currentY = (doc as any).lastAutoTable?.finalY + 8 || currentY + 50;
+      }
+    );
+    currentY += 4;
   }
 
   if (reportData.missingStockItems?.length) {

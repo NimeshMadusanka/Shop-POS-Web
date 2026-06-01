@@ -385,6 +385,9 @@ export default function EmailReportPage() {
         reportData={previewData}
         reportFilter={reportFilter}
         isBrandFiltered={!!selectedBrand?._id}
+        isCombinedOutlets={outletId === 'combined'}
+        activeOutletId={outletId === 'combined' ? undefined : (outletId as 'AHANGAMA' | 'ARUGAM_BAY')}
+        selectedBrandId={selectedBrand?._id}
         paymentMethodTotals={previewPaymentTotals}
         onDownload={handleDownloadFromPreview}
         downloadLoading={pdfLoading}
