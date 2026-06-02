@@ -30,6 +30,7 @@ type ReportData = {
     invoiceNumber: string;
     itemName: string;
     brandName: string;
+    brandId?: string | null;
     quantity: number;
     total: number;
     grandTotal: number;
@@ -37,6 +38,21 @@ type ReportData = {
     discountPercent?: number;
     discountAmount?: number;
   }>;
+  revenueShare?: {
+    netTotal: number;
+    shopShare: number;
+    brandShare: number;
+    commissionPercent?: number | null;
+    brandName?: string | null;
+    perBrand?: Array<{
+      brandId: string | null;
+      brandName: string;
+      commissionPercent: number;
+      netTotal: number;
+      shopShare: number;
+      brandShare: number;
+    }>;
+  };
   dateFrom: string | null;
   dateTo: string | null;
   brandName: string | null;
@@ -53,6 +69,7 @@ type ReportData = {
     brandName: string;
     itemCategory: string;
     stockQuantity: number;
+    outletId?: string;
   }>;
   missingStockItems?: Array<{
     itemName: string;
@@ -79,5 +96,5 @@ const getReportDataApi = async (params: GetPDFReportParams): Promise<ReportData>
 };
 
 export { sendDailyReportApi, getPDFReportApi, getReportDataApi };
-export type { ReportData };
+export type { ReportData, GetPDFReportParams };
 

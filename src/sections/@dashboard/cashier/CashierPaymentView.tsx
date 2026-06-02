@@ -208,6 +208,22 @@ export default function CashierPaymentView() {
     setCartItems(updated);
   };
 
+  const clampDiscountPercent = (value: number) => Math.min(100, Math.max(0, value));
+
+  // Update per-item discount (%)
+  const handleUpdateItemDiscount = (index: number, rawValue: string) => {
+    const updated = [...cartItems];
+    if (rawValue === '') {
+      updated[index] = { ...updated[index], offPercentage: 0 };
+      setCartItems(updated);
+      return;
+    }
+    const num = Number(rawValue);
+    if (Number.isNaN(num)) return;
+    updated[index] = { ...updated[index], offPercentage: clampDiscountPercent(num) };
+    setCartItems(updated);
+  };
+
   // Update quantity
   const handleUpdateQuantity = (index: number, newQuantity: number) => {
     // Allow 0 or empty to remove the item
@@ -268,16 +284,6 @@ export default function CashierPaymentView() {
         offPercentage: item.offPercentage || 0,
       }));
 
-      // Generate invoice number format: YIVAYYMMDDHHMMSS
-      const now = new Date();
-      const year = now.getFullYear().toString().slice(-2);
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-      const invoiceNumber = `YIVA${year}${month}${day}${hours}${minutes}${seconds}`;
-
       // Recalculate totals to ensure we have the latest values
       let subtotal = 0;
       let itemDiscount = 0;
@@ -313,7 +319,6 @@ export default function CashierPaymentView() {
         cashPaid: finalCashPaid,
         creditPaid: finalCreditPaid,
         debitPaid: finalDebitPaid,
-        invoiceNumber,
         commission: commissionAmount > 0,
         commissionAmount: Number(commissionAmount.toFixed(2)),
       };
@@ -326,7 +331,7 @@ export default function CashierPaymentView() {
       const paymentData = {
         ...payload,
         ...savedPayment,
-        invoiceNumber,
+        invoiceNumber: savedPayment?.invoiceNumber,
         cashierName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.email || 'Cashier',
         shopInfo: shopInfo ? {
           shopName: shopInfo.shopName,
@@ -520,7 +525,7 @@ export default function CashierPaymentView() {
                   Unit Price
                 </TableCell>
                 <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: 'primary.main', fontSize: '15px' }}>
-                  Discount
+                  Discount (%)
                 </TableCell>
                 <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: 'primary.main', fontSize: '15px' }}>
                   Total
@@ -577,7 +582,24 @@ export default function CashierPaymentView() {
                       </TableCell>
                       <TableCell sx={{ fontSize: '15px' }}>{item.itemPrice.toFixed(2)}</TableCell>
                       <TableCell sx={{ fontSize: '15px' }}>
-                        {(item.offPercentage || 0) > 0 ? `${item.offPercentage}%` : '0%'}
+                        <TextField
+                          type="number"
+                          value={item.offPercentage === undefined ? '' : item.offPercentage}
+                          onChange={(e) => handleUpdateItemDiscount(index, e.target.value)}
+                          onBlur={(e) => {
+                            if (e.target.value === '') {
+                              handleUpdateItemDiscount(index, '0');
+                            }
+                          }}
+                          inputProps={{
+                            min: 0,
+                            max: 100,
+                            step: 0.01,
+                            style: { textAlign: 'center', width: '56px' },
+                          }}
+                          size="small"
+                          placeholder="0"
+                        />
                       </TableCell>
                       <TableCell sx={{ fontSize: '15px' }}>{itemTotal.toFixed(2)}</TableCell>
                       <TableCell>
@@ -606,7 +628,10 @@ export default function CashierPaymentView() {
                   Total Items: {cartItems.length}
                 </Typography>
                 <Typography variant="body2" sx={{ fontSize: '15px' }}>
-                  Total Discount: {calculations.totalDiscount.toFixed(2)}
+                  Item Discount: {calculations.itemDiscount.toFixed(2)}
+                </Typography>
+                <Typography variant="body2" sx={{ fontSize: '15px' }}>
+                  Bill Discount: {calculations.billDiscountAmount.toFixed(2)}
                 </Typography>
               </Box>
             </Grid>
@@ -616,7 +641,7 @@ export default function CashierPaymentView() {
                   Subtotal: {calculations.subtotal.toFixed(2)}
                 </Typography>
                 <Typography variant="body2" sx={{ fontSize: '15px' }}>
-                  Discount: {calculations.totalDiscount.toFixed(2)}
+                  Total Discount: {calculations.totalDiscount.toFixed(2)}
                 </Typography>
                 <Typography variant="body2" sx={{ fontSize: '15px', fontWeight: 600 }}>
                   Total Due: {calculations.grandTotal.toFixed(2)}

@@ -31,7 +31,7 @@ import { BrandTableToolbar, BrandTableRow } from '../../sections/@dashboard/bran
 
 const TABLE_HEAD = [
   { id: 'brandName', label: 'Brand Name', align: 'left' },
-  { id: 'commissionPercent', label: 'Commission %', align: 'left' },
+  { id: 'commissionPercent', label: 'Shop Commission %', align: 'left' },
   { id: 'description', label: 'Description', align: 'left' },
   { id: '', label: 'Action', align: 'center' },
 ];

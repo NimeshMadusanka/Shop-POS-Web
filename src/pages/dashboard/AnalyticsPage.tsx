@@ -1,50 +1,34 @@
 import { Helmet } from 'react-helmet-async';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 // @mui
 import {
   Card,
-  Table,
   Divider,
-  TableBody,
   Container,
-  TableContainer,
   Button,
   Stack,
+  Typography,
+  Box,
 } from '@mui/material';
 import { getStockActivityData } from 'src/api/AnalyticsApi';
+import { getBrandData } from 'src/api/BrandApi';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 // routes
 import { PATH_DASHBOARD } from '../../routes/paths';
 // components
-import Scrollbar from '../../components/scrollbar';
 import CustomBreadcrumbs from '../../components/custom-breadcrumbs';
 import { useSettingsContext } from '../../components/settings';
-import {
-  useTable,
-  getComparator,
-  emptyRows,
-  TableNoData,
-  TableEmptyRows,
-  TableHeadCustom,
-  TablePaginationCustom,
-} from '../../components/table';
+import { getComparator } from '../../components/table';
 import Loader from '../../components/loading-screen';
 import { useAuthContext } from 'src/auth/useAuthContext';
 import Iconify from '../../components/iconify';
 import { useOutlet } from 'src/contexts/OutletContext';
+import { OUTLETS, OUTLET_META, OutletId } from 'src/config/outlets';
+import AlignedGroupedTables from 'src/components/table/AlignedGroupedTables';
+import { groupByOutletAndBrand } from 'src/utils/groupByOutletAndBrand';
 // sections
-import { AnalyticsTableRow, AnalyticstableToolbar } from '../../sections/@dashboard/analytics/list';
-
-// ----------------------------------------------------------------------
-
-const TABLE_HEAD = [
-  { id: 'itemId', label: 'Item ID', align: 'left' },
-  { id: 'itemName', label: 'Item Name', align: 'left' },
-  { id: 'amount', label: 'Amount', align: 'left' },
-  { id: 'operationType', label: 'Type', align: 'left' },
-  { id: 'operationDate', label: 'Date and Time', align: 'left' },
-];
+import { AnalyticstableToolbar } from '../../sections/@dashboard/analytics/list';
 
 // ----------------------------------------------------------------------
 
@@ -55,25 +39,54 @@ interface StockActivity {
   amount: number;
   operationType: 'Stock-in' | 'Stock-out' | 'refunded-stock-in' | 'Returning-stock-out' | 'missing';
   operationDate: string;
+  outletId?: string;
+  brandName?: string | null;
+  brandId?: string | null;
 }
 
-export default function AnalyticsPage() {
-  const {
-    page,
-    order,
-    orderBy,
-    rowsPerPage,
-    setPage,
-    onSort,
-    onChangePage,
-    onChangeRowsPerPage,
-  } = useTable({
-    defaultOrderBy: 'operationDate',
-    defaultOrder: 'desc',
-  });
+const ANALYTICS_COLUMNS = [
+  {
+    id: 'itemId',
+    label: 'Item ID',
+    width: '14%',
+    render: (row: StockActivity) => String(row.itemId).slice(-8),
+  },
+  {
+    id: 'itemName',
+    label: 'Item Name',
+    width: '26%',
+    render: (row: StockActivity) => row.itemName,
+  },
+  {
+    id: 'amount',
+    label: 'Amount',
+    width: '12%',
+    align: 'right' as const,
+    render: (row: StockActivity) => row.amount,
+  },
+  {
+    id: 'operationType',
+    label: 'Type',
+    width: '18%',
+    render: (row: StockActivity) => row.operationType,
+  },
+  {
+    id: 'operationDate',
+    label: 'Date and Time',
+    width: '30%',
+    render: (row: StockActivity) => new Date(row.operationDate).toLocaleString(),
+  },
+];
 
+// ----------------------------------------------------------------------
+
+export default function AnalyticsPage() {
   const { themeStretch } = useSettingsContext();
   const [tableData, setTableData] = useState<StockActivity[]>([]);
+  const [brands, setBrands] = useState<{ _id: string; brandName: string }[]>([]);
+  const [selectedBrand, setSelectedBrand] = useState<{ _id: string; brandName: string } | null>(
+    null
+  );
   const [filterName, setFilterName] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterItem, setFilterItem] = useState('all');
@@ -83,37 +96,64 @@ export default function AnalyticsPage() {
   const { outletId } = useOutlet();
   const [dataLoad, setDataLoad] = useState(false);
 
-  // Get unique items for filter dropdown
+  const outletsToShow = useMemo<OutletId[]>(
+    () => (outletId === 'combined' ? [...OUTLETS] : [outletId as OutletId]),
+    [outletId]
+  );
+
   const uniqueItems = Array.from(new Set(tableData.map((item) => item.itemName))).sort();
 
-  const dataFiltered = applyFilter({
-    inputData: tableData,
-    comparator: getComparator(order, orderBy),
-    filterName,
-    filterType,
-    filterItem,
-    filterDateFrom,
-    filterDateTo,
-  });
+  const dataFiltered = useMemo(
+    () =>
+      applyFilter({
+        inputData: tableData,
+        comparator: getComparator('desc', 'operationDate'),
+        filterName,
+        filterType,
+        filterItem,
+        filterDateFrom,
+        filterDateTo,
+        brandId: selectedBrand?._id || null,
+      }),
+    [
+      tableData,
+      filterName,
+      filterType,
+      filterItem,
+      filterDateFrom,
+      filterDateTo,
+      selectedBrand?._id,
+    ]
+  );
 
-  const denseHeight = 72;
+  const groupedSections = useMemo(
+    () =>
+      groupByOutletAndBrand<StockActivity>(dataFiltered, {
+        outletsToShow,
+        brandId: selectedBrand?._id || null,
+      }),
+    [dataFiltered, outletsToShow, selectedBrand?._id]
+  );
 
-  const isFiltered = filterName !== '' || filterType !== 'all' || filterItem !== 'all' || filterDateFrom !== '' || filterDateTo !== '';
+  const isFiltered =
+    filterName !== '' ||
+    filterType !== 'all' ||
+    filterItem !== 'all' ||
+    filterDateFrom !== '' ||
+    filterDateTo !== '' ||
+    !!selectedBrand;
 
   const isNotFound = !dataFiltered.length && isFiltered;
 
   const handleFilterName = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setPage(0);
     setFilterName(event.target.value);
   };
 
   const handleFilterType = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setPage(0);
     setFilterType(event.target.value);
   };
 
   const handleFilterItem = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setPage(0);
     setFilterItem(event.target.value);
   };
 
@@ -123,6 +163,7 @@ export default function AnalyticsPage() {
     setFilterItem('all');
     setFilterDateFrom('');
     setFilterDateTo('');
+    setSelectedBrand(null);
   };
 
   const loadData = useCallback(async () => {
@@ -130,8 +171,12 @@ export default function AnalyticsPage() {
     const companyID = user?.companyID;
     try {
       const outletParam = outletId === 'combined' ? undefined : outletId;
-      const data = await getStockActivityData(companyID, outletParam);
+      const [data, brandList] = await Promise.all([
+        getStockActivityData(companyID, outletParam),
+        companyID ? getBrandData(companyID) : Promise.resolve([]),
+      ]);
       setTableData(data);
+      setBrands(Array.isArray(brandList) ? brandList : []);
     } catch (error) {
       console.error('Error loading analytics data:', error);
     } finally {
@@ -143,7 +188,6 @@ export default function AnalyticsPage() {
     loadData();
   }, [loadData]);
 
-  // Refresh data when page becomes visible (user navigates back)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && user?.companyID) {
@@ -159,25 +203,31 @@ export default function AnalyticsPage() {
     const marginLeft = 20;
     let currentY = 20;
 
-    // Title
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text('Item Activity Analytics Report', marginLeft, currentY);
     currentY += 10;
 
-    // Report Date
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Generated on: ${new Date().toLocaleString()}`, marginLeft, currentY);
     currentY += 6;
 
-    // Show applied filters if any
+    if (outletId !== 'combined') {
+      doc.text(`Outlet: ${OUTLET_META[outletsToShow[0]].label}`, marginLeft, currentY);
+      currentY += 6;
+    }
+
     if (isFiltered) {
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
       doc.text('Applied Filters:', marginLeft, currentY);
       currentY += 5;
       doc.setFont('helvetica', 'normal');
+      if (selectedBrand) {
+        doc.text(`Brand: ${selectedBrand.brandName}`, marginLeft + 5, currentY);
+        currentY += 5;
+      }
       if (filterType !== 'all') {
         doc.text(`Operation Type: ${filterType}`, marginLeft + 5, currentY);
         currentY += 5;
@@ -190,46 +240,71 @@ export default function AnalyticsPage() {
         doc.text(`Search: ${filterName}`, marginLeft + 5, currentY);
         currentY += 5;
       }
+      if (filterDateFrom) {
+        doc.text(`Date from: ${filterDateFrom}`, marginLeft + 5, currentY);
+        currentY += 5;
+      }
+      if (filterDateTo) {
+        doc.text(`Date to: ${filterDateTo}`, marginLeft + 5, currentY);
+        currentY += 5;
+      }
       currentY += 3;
-    } else {
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'italic');
-      doc.text('Showing all records', marginLeft, currentY);
-      currentY += 6;
     }
 
-    // Table
-    // Calculate available width: A4 width (210mm) - left margin (20mm) - right margin (20mm) = 170mm
-    // Truncate long item names to prevent overflow
     const truncateText = (text: string, maxLength: number) => {
       if (text.length <= maxLength) return text;
-      return text.substring(0, maxLength - 3) + '...';
+      return `${text.substring(0, maxLength - 3)}...`;
     };
 
-    autoTable(doc, {
-      startY: currentY,
-      head: [['Item ID', 'Item Name', 'Amount', 'Type', 'Date and Time']],
-      body: dataFiltered.map((activity) => [
-        String(activity.itemId).slice(-8),
-        truncateText(activity.itemName, 25),
-        String(activity.amount),
-        activity.operationType,
-        new Date(activity.operationDate).toLocaleString(),
-      ]),
-      theme: 'grid',
-      headStyles: { fillColor: [0, 102, 204], fontSize: 9 },
-      margin: { left: marginLeft, right: 20 },
-      styles: { fontSize: 8, cellPadding: 2 },
-      columnStyles: {
-        0: { cellWidth: 25 },  // Item ID
-        1: { cellWidth: 45 },  // Item Name
-        2: { cellWidth: 20 },  // Amount
-        3: { cellWidth: 25 },  // Type
-        4: { cellWidth: 55 },  // Date and Time
-      },
+    groupedSections.forEach((section) => {
+      if (currentY > 240) {
+        doc.addPage();
+        currentY = 20;
+      }
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(section.outletLabel, marginLeft, currentY);
+      currentY += 6;
+
+      const body: any[] = [];
+      section.brands.forEach((brand) => {
+        body.push([
+          {
+            content: brand.brandName,
+            colSpan: 5,
+            styles: { fillColor: [232, 245, 233], fontStyle: 'bold', fontSize: 9 },
+          },
+        ]);
+        brand.items.forEach((activity) => {
+          body.push([
+            String(activity.itemId).slice(-8),
+            truncateText(activity.itemName, 28),
+            String(activity.amount),
+            activity.operationType,
+            new Date(activity.operationDate).toLocaleString(),
+          ]);
+        });
+      });
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [['Item ID', 'Item Name', 'Amount', 'Type', 'Date and Time']],
+        body,
+        theme: 'grid',
+        headStyles: { fillColor: [0, 102, 204], fontSize: 9 },
+        margin: { left: marginLeft, right: 20 },
+        styles: { fontSize: 8, cellPadding: 2 },
+        columnStyles: {
+          0: { cellWidth: 22 },
+          1: { cellWidth: 42 },
+          2: { cellWidth: 18 },
+          3: { cellWidth: 28 },
+          4: { cellWidth: 50 },
+        },
+      });
+      currentY = (doc as any).lastAutoTable?.finalY + 10 || currentY + 50;
     });
 
-    // Summary
     const stockInCount = dataFiltered.filter((a) => a.operationType === 'Stock-in').length;
     const stockOutCount = dataFiltered.filter((a) => a.operationType === 'Stock-out').length;
     const missingCount = dataFiltered.filter((a) => a.operationType === 'missing').length;
@@ -243,48 +318,32 @@ export default function AnalyticsPage() {
       .filter((a) => a.operationType === 'missing')
       .reduce((sum, a) => sum + a.amount, 0);
 
-    const finalY = (doc as any).lastAutoTable?.finalY || currentY + 50;
-    currentY = finalY + 10;
-
+    currentY = (doc as any).lastAutoTable?.finalY + 10 || currentY + 10;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Summary', marginLeft, currentY);
     currentY += 6;
 
-    const summaryRows = [
-      ['Total Stock-in Operations', stockInCount, 'Total Stock-out Operations', stockOutCount],
-      ['Total Stock-in Amount', totalStockIn, 'Total Stock-out Amount', totalStockOut],
-      ['Total Missing Operations', missingCount, 'Total Missing Amount', totalMissing],
-    ];
-
     autoTable(doc, {
       startY: currentY,
       head: [['Metric', 'Value', 'Metric', 'Value']],
-      body: summaryRows,
+      body: [
+        ['Total Stock-in Operations', stockInCount, 'Total Stock-out Operations', stockOutCount],
+        ['Total Stock-in Amount', totalStockIn, 'Total Stock-out Amount', totalStockOut],
+        ['Total Missing Operations', missingCount, 'Total Missing Amount', totalMissing],
+      ],
       theme: 'grid',
       headStyles: { fillColor: [18, 80, 26] },
       styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: {
-        0: { cellWidth: 50 },
-        1: { cellWidth: 20, halign: 'right' },
-        2: { cellWidth: 50 },
-        3: { cellWidth: 20, halign: 'right' },
-      },
       margin: { left: marginLeft, right: marginLeft },
     });
 
-    // Generate filename based on filters
     let filename = `item_activity_analytics_${new Date().toISOString().split('T')[0]}`;
-    if (isFiltered) {
-      filename += '_filtered';
-      if (filterType !== 'all') filename += `_${filterType.replace(/-/g, '_')}`;
-      if (filterItem !== 'all') filename += `_${filterItem.replace(/\s+/g, '_')}`;
-      if (filterDateFrom) filename += `_from_${filterDateFrom}`;
-      if (filterDateTo) filename += `_to_${filterDateTo}`;
-    }
+    if (isFiltered) filename += '_filtered';
+    if (selectedBrand) filename += `_${selectedBrand.brandName.replace(/\s+/g, '_')}`;
+    if (outletId !== 'combined') filename += `_${outletId}`;
     filename += '.pdf';
 
-    // Save PDF
     doc.save(filename);
   };
 
@@ -320,6 +379,7 @@ export default function AnalyticsPage() {
                 variant="contained"
                 startIcon={<Iconify icon="eva:download-fill" />}
                 onClick={handleDownloadPDF}
+                disabled={!dataFiltered.length}
                 sx={{
                   backgroundColor: '#6B8E5A',
                   '&:hover': { backgroundColor: '#4A5D3F' },
@@ -344,61 +404,46 @@ export default function AnalyticsPage() {
               filterItem={filterItem}
               filterDateFrom={filterDateFrom}
               filterDateTo={filterDateTo}
-              optionsType={['all', 'Stock-in', 'Stock-out', 'refunded-stock-in', 'Returning-stock-out', 'missing']}
+              optionsType={[
+                'all',
+                'Stock-in',
+                'Stock-out',
+                'refunded-stock-in',
+                'Returning-stock-out',
+                'missing',
+              ]}
               optionsItem={['all', ...uniqueItems]}
+              brands={brands}
+              selectedBrand={selectedBrand}
+              onBrandChange={setSelectedBrand}
               onFilterName={handleFilterName}
               onFilterType={handleFilterType}
               onFilterItem={handleFilterItem}
-              onFilterDateFrom={(e) => {
-                setPage(0);
-                setFilterDateFrom(e.target.value);
-              }}
-              onFilterDateTo={(e) => {
-                setPage(0);
-                setFilterDateTo(e.target.value);
-              }}
+              onFilterDateFrom={(e) => setFilterDateFrom(e.target.value)}
+              onFilterDateTo={(e) => setFilterDateTo(e.target.value)}
               onResetFilter={handleResetFilter}
             />
 
-            <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
-              <Scrollbar>
-                <Table size="medium" sx={{ minWidth: 800 }}>
-                  <TableHeadCustom
-                    order={order}
-                    orderBy={orderBy}
-                    headLabel={TABLE_HEAD}
-                    rowCount={tableData.length}
-                    onSort={onSort}
-                  />
-
-                  <TableBody>
-                    {dataFiltered
-                      .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                      .map((row) => (
-                        <AnalyticsTableRow
-                          key={row._id}
-                          row={row}
-                        />
-                      ))}
-
-                    <TableEmptyRows
-                      height={denseHeight}
-                      emptyRows={emptyRows(page, rowsPerPage, tableData.length)}
-                    />
-
-                    <TableNoData isNotFound={isNotFound} />
-                  </TableBody>
-                </Table>
-              </Scrollbar>
-            </TableContainer>
-
-            <TablePaginationCustom
-              count={dataFiltered.length}
-              page={page}
-              rowsPerPage={rowsPerPage}
-              onPageChange={onChangePage}
-              onRowsPerPageChange={onChangeRowsPerPage}
-            />
+            <Box sx={{ px: 2, pb: 3 }}>
+              {isNotFound ? (
+                <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+                  No records match your filters.
+                </Typography>
+              ) : (
+                <AlignedGroupedTables
+                  sections={groupedSections}
+                  columns={ANALYTICS_COLUMNS}
+                  emptyMessage="No stock activity records found."
+                  brandHeaderColor="primary.main"
+                />
+              )}
+              {!isNotFound && dataFiltered.length > 0 && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+                  Showing {dataFiltered.length} record{dataFiltered.length === 1 ? '' : 's'}
+                  {selectedBrand ? ` for ${selectedBrand.brandName}` : ''}.
+                </Typography>
+              )}
+            </Box>
           </Card>
         )}
       </Container>
@@ -416,6 +461,7 @@ function applyFilter({
   filterItem,
   filterDateFrom,
   filterDateTo,
+  brandId,
 }: {
   inputData: StockActivity[];
   comparator: (a: any, b: any) => number;
@@ -424,6 +470,7 @@ function applyFilter({
   filterItem: string;
   filterDateFrom: string;
   filterDateTo: string;
+  brandId: string | null;
 }) {
   const stabilizedThis = inputData.map((el, index) => [el, index] as const);
 
@@ -435,27 +482,27 @@ function applyFilter({
 
   let filteredData = stabilizedThis.map((el) => el[0]);
 
-  // Filter by operation type
+  if (brandId) {
+    filteredData = filteredData.filter(
+      (activity) => activity.brandId && String(activity.brandId) === String(brandId)
+    );
+  }
+
   if (filterType !== 'all') {
     filteredData = filteredData.filter((activity) => activity.operationType === filterType);
   }
 
-  // Filter by item name
   if (filterItem !== 'all') {
     filteredData = filteredData.filter((activity) => activity.itemName === filterItem);
   }
 
-  // Filter by search name
   if (filterName) {
     filteredData = filteredData.filter(
       (activity) =>
-        activity &&
-        activity.itemName &&
-        activity.itemName.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
+        activity?.itemName?.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
     );
   }
 
-  // Filter by date range
   if (filterDateFrom) {
     const fromDate = new Date(filterDateFrom);
     fromDate.setHours(0, 0, 0, 0);
@@ -477,4 +524,3 @@ function applyFilter({
 
   return filteredData;
 }
-
