@@ -1,5 +1,6 @@
 import { Helmet } from 'react-helmet-async';
-import { useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 // @mui
 import { Container } from '@mui/material';
 // routes
@@ -15,20 +16,33 @@ import UserNewEditForm from '../../sections/@dashboard/user/UserNewEditForm';
 export default function UserEditPage() {
   const { themeStretch } = useSettingsContext();
   const location = useLocation();
+  const navigate = useNavigate();
+  const state = location.state as any;
 
-  const { _id, userName, email, role, password, phoneNumber, emergencyPhoneNumber, assignedOutletId } =
-    location.state;
+  useEffect(() => {
+    if (!state?._id) {
+      navigate(PATH_DASHBOARD.user.list, { replace: true });
+    }
+  }, [state, navigate]);
+
+  if (!state?._id) {
+    return null;
+  }
+
+  const userName =
+    state.userName ||
+    [state.firstName, state.lastName].filter(Boolean).join(' ').trim() ||
+    state.email;
 
   const userData = {
-    _id,
+    _id: state._id,
     userName,
-    email,
-    role,
-    password,
-    phoneNumber,
-    emergencyPhoneNumber,
-    assignedOutletId,
-  } as any;
+    email: state.email,
+    role: state.role,
+    phoneNumber: state.phoneNumber,
+    emergencyPhoneNumber: state.emergencyPhoneNumber,
+    assignedOutletId: state.assignedOutletId,
+  };
 
   return (
     <>

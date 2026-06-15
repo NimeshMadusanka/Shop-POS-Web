@@ -12,7 +12,7 @@ import {
   Container,
   TableContainer,
 } from '@mui/material';
-import { getUserData } from 'src/api/UserApi';
+import { getUserData, deleteUserApi } from 'src/api/UserApi';
 // routes
 import { PATH_DASHBOARD } from '../../routes/paths';
 // @types
@@ -32,6 +32,7 @@ import {
   TablePaginationCustom,
 } from '../../components/table';
 import Loader from '../../components/loading-screen';
+import { useSnackbar } from '../../components/snackbar';
 // sections
 import { UserTableToolbar, UserTableRow } from '../../sections/@dashboard/user/list';
 
@@ -85,6 +86,7 @@ export default function UserListPage() {
   const { themeStretch } = useSettingsContext();
 
   const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
 
   const [tableData, setTableData] = useState([]);
 
@@ -123,22 +125,36 @@ export default function UserListPage() {
     setFilterRole(event.target.value);
   };
 
-  const handleDeleteRow = (id: string) => {
-   
-    const deleteRow = tableData.filter((row:NewUserCreate) => row?._id !== id);
+  const handleDeleteRow = async (id: string) => {
+    try {
+      await deleteUserApi(id);
+      const deleteRow = tableData.filter((row: NewUserCreate) => row?._id !== id);
+      setSelected([]);
+      setTableData(deleteRow);
+      enqueueSnackbar('User deleted successfully!');
 
-    setSelected([]);
-    setTableData(deleteRow);
-
-    if (page > 0) {
-      if (dataInPage.length < 2) {
-        setPage(page - 1);
+      if (page > 0) {
+        if (dataInPage.length < 2) {
+          setPage(page - 1);
+        }
       }
+    } catch (error: any) {
+      enqueueSnackbar(error.message ?? 'Failed to delete user', { variant: 'error' });
     }
   };
 
-  const handleEditRow = (id: string, row:any) => {
-    navigate(PATH_DASHBOARD.user.edit(paramCase(id)),row);
+  const handleEditRow = (row: NewUserCreate) => {
+    const displayName =
+      row.userName ||
+      [(row as any).firstName, (row as any).lastName].filter(Boolean).join(' ').trim() ||
+      row.email;
+
+    navigate(PATH_DASHBOARD.user.edit(paramCase(displayName)), {
+      state: {
+        ...row,
+        userName: displayName,
+      },
+    });
   };
 
   const handleResetFilter = () => {
@@ -233,7 +249,7 @@ export default function UserListPage() {
                           selected={selected.includes(row._id)}
                           onSelectRow={() => onSelectRow(row._id)}
                           onDeleteRow={() => handleDeleteRow(row._id)}
-                          onEditRow={() => handleEditRow(row.userName, { state: row })}
+                          onEditRow={() => handleEditRow(row)}
                         />
                       ))}
 
