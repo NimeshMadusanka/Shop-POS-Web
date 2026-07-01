@@ -117,6 +117,8 @@ export type NewCategoryCreate = {
  description: string;
 };
 
+export type DiscountType = 'combined' | 'brand' | 'store';
+
 export type NewCusloyaltyCreate = {
   _id: string;
   itemName: string;
@@ -124,6 +126,7 @@ export type NewCusloyaltyCreate = {
   discountName:string;
   description: string;
   status: 'active' | 'inactive';
+  discountType?: DiscountType;
   itemID?: string;
   outletId?: OutletId;
 

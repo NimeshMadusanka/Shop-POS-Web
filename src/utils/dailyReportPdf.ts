@@ -5,6 +5,7 @@ import { ReportData } from 'src/api/EmailReportApi';
 import { getLowStockStatus } from 'src/utils/groupLowStockByBrand';
 import { groupLowStockByOutletAndBrand } from 'src/utils/groupLowStockByOutletAndBrand';
 import { OUTLETS, OutletId } from 'src/config/outlets';
+import { DISCOUNT_LEGEND } from 'src/utils/discountCalculation';
 
 export type ReportFilter = 'all' | 'provider-shop' | 'shop-client';
 
@@ -165,26 +166,23 @@ export async function generateDailyReportPdf({
 
     if (reportData.shopClientTransactions.length > 0) {
       ensureSpace(30);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(reportData.discountLegend || DISCOUNT_LEGEND, marginLeft, currentY);
+      currentY += 6;
       autoTable(doc, {
         startY: currentY,
         head: [['Date', 'Invoice', 'Item Name', 'Brand', 'Qty', 'Total', 'Type', 'Discount']],
-        body: reportData.shopClientTransactions.map((t) => {
-          const discountPercent = t.discountPercent ?? null;
-          const discountAmount = Number(t.discountAmount ?? 0);
-          const parts: string[] = [];
-          if (discountPercent) parts.push(`${discountPercent}%`);
-          if (discountAmount) parts.push(`LKR ${discountAmount.toFixed(2)}`);
-          return [
-            new Date(t.date).toLocaleDateString(),
-            truncateText(t.invoiceNumber || 'N/A', 18),
-            t.itemName || 'N/A',
-            t.brandName || 'N/A',
-            String(t.quantity || 0),
-            `LKR ${Number(t.total || 0).toFixed(2)}`,
-            truncateText(t.operationType || 'N/A', 10),
-            parts.length ? parts.join(' / ') : '-',
-          ];
-        }),
+        body: reportData.shopClientTransactions.map((t) => [
+          new Date(t.date).toLocaleDateString(),
+          truncateText(t.invoiceNumber || 'N/A', 18),
+          t.itemName || 'N/A',
+          t.brandName || 'N/A',
+          String(t.quantity || 0),
+          `LKR ${Number(t.total || 0).toFixed(2)}`,
+          truncateText(t.operationType || 'N/A', 10),
+          t.discountLabel || '-',
+        ]),
         theme: 'grid',
         headStyles: { fillColor: [0, 102, 204], fontSize: 9 },
         margin: { top: headerReserve, bottom: footerReserve, left: marginLeft, right: 10 },

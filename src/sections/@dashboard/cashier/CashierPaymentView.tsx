@@ -31,6 +31,8 @@ import PaymentEntryDialog from './PaymentEntryDialog';
 import PaymentSuccessDialog from './PaymentSuccessDialog';
 import { getShopData } from '../../../api/ShopApi';
 import RefundFlowDialog from './RefundFlowDialog';
+import { calculateItemDiscountAmount, normalizeDiscountType } from '../../../utils/discountCalculation';
+import type { DiscountType } from '../../../utils/discountCalculation';
 
 interface Item {
   _id: string;
@@ -54,6 +56,7 @@ interface CartItem {
   itemPrice: number;
   quantity: number;
   offPercentage?: number;
+  discountType?: DiscountType;
   brandId?: string;
   brandName?: string;
   commissionPercent?: number;
@@ -64,6 +67,7 @@ interface Discount {
   itemID: string;
   itemName: string;
   offPercentage: number;
+  discountType?: DiscountType;
   status: 'active' | 'inactive';
 }
 
@@ -133,8 +137,12 @@ export default function CashierPaymentView() {
 
     cartItems.forEach((item) => {
       const itemSubtotal = item.itemPrice * item.quantity;
-      const discount = item.offPercentage || 0;
-      const discountAmount = (itemSubtotal * discount) / 100;
+      const discountAmount = calculateItemDiscountAmount({
+        lineGross: itemSubtotal,
+        offPercentage: item.offPercentage || 0,
+        discountType: item.discountType,
+        commissionPercent: item.commissionPercent,
+      });
       subtotal += itemSubtotal;
       itemDiscount += discountAmount;
     });
@@ -191,6 +199,7 @@ export default function CashierPaymentView() {
         itemPrice: Number(selectedProduct.itemPrice),
         quantity: qty,
         offPercentage: discount?.offPercentage || 0,
+        discountType: normalizeDiscountType(discount?.discountType),
         brandId: selectedProduct.brandId,
         brandName: brand?.brandName || '',
         commissionPercent: Number(brand?.commissionPercent) || 0,
@@ -282,6 +291,8 @@ export default function CashierPaymentView() {
         brandId: item.brandId,
         brandName: item.brandName,
         offPercentage: item.offPercentage || 0,
+        discountType: item.discountType || 'combined',
+        commissionPercent: item.commissionPercent || 0,
       }));
 
       // Recalculate totals to ensure we have the latest values
@@ -290,8 +301,12 @@ export default function CashierPaymentView() {
 
       cartItems.forEach((item) => {
         const itemSubtotal = item.itemPrice * item.quantity;
-        const discount = item.offPercentage || 0;
-        const discountAmount = (itemSubtotal * discount) / 100;
+        const discountAmount = calculateItemDiscountAmount({
+          lineGross: itemSubtotal,
+          offPercentage: item.offPercentage || 0,
+          discountType: item.discountType,
+          commissionPercent: item.commissionPercent,
+        });
         subtotal += itemSubtotal;
         itemDiscount += discountAmount;
       });
@@ -304,7 +319,12 @@ export default function CashierPaymentView() {
         const brand = brandData.find((b) => b._id === item.brandId);
         const commissionPercent = Number(item.commissionPercent ?? brand?.commissionPercent) || 0;
         const itemSubtotal = item.itemPrice * item.quantity;
-        const itemDiscountAmount = (itemSubtotal * (item.offPercentage || 0)) / 100;
+        const itemDiscountAmount = calculateItemDiscountAmount({
+          lineGross: itemSubtotal,
+          offPercentage: item.offPercentage || 0,
+          discountType: item.discountType,
+          commissionPercent,
+        });
         const itemNet = itemSubtotal - itemDiscountAmount;
         return sum + (itemNet * commissionPercent) / 100;
       }, 0);

@@ -24,7 +24,7 @@ import { groupLowStockByOutletAndBrand } from 'src/utils/groupLowStockByOutletAn
 import AlignedGroupedTables from 'src/components/table/AlignedGroupedTables';
 import { OUTLETS, OutletId } from 'src/config/outlets';
 import Iconify from '../../../components/iconify';
-import Scrollbar from '../../../components/scrollbar';
+import { DISCOUNT_LEGEND } from 'src/utils/discountCalculation';
 
 type Props = {
   open: boolean;
@@ -44,11 +44,13 @@ const formatLkr = (n: number) => `LKR ${Number(n || 0).toFixed(2)}`;
 
 function SectionTable({
   title,
+  legend,
   headers,
   rows,
   emptyMessage,
 }: {
   title: string;
+  legend?: string;
   headers: string[];
   rows: (string | number)[][];
   emptyMessage?: string;
@@ -58,6 +60,11 @@ function SectionTable({
       <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
         {title}
       </Typography>
+      {legend ? (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+          {legend}
+        </Typography>
+      ) : null}
       {rows.length === 0 ? (
         <Typography variant="body2" color="text.secondary" fontStyle="italic">
           {emptyMessage || 'No records found.'}
@@ -115,21 +122,16 @@ export default function DailyReportPreviewDialog({
     ]) || [];
 
   const salesRows =
-    reportData?.shopClientTransactions.map((t) => {
-      const parts: string[] = [];
-      if (t.discountPercent) parts.push(`${Number(t.discountPercent).toFixed(1)}%`);
-      if (t.discountAmount) parts.push(formatLkr(Number(t.discountAmount)));
-      return [
-        new Date(t.date).toLocaleDateString(),
-        t.invoiceNumber || 'N/A',
-        t.itemName || 'N/A',
-        t.brandName || 'N/A',
-        t.quantity ?? 0,
-        formatLkr(Number(t.total || 0)),
-        t.operationType || 'N/A',
-        parts.length ? parts.join(' / ') : '-',
-      ];
-    }) || [];
+    reportData?.shopClientTransactions.map((t) => [
+      new Date(t.date).toLocaleDateString(),
+      t.invoiceNumber || 'N/A',
+      t.itemName || 'N/A',
+      t.brandName || 'N/A',
+      t.quantity ?? 0,
+      formatLkr(Number(t.total || 0)),
+      t.operationType || 'N/A',
+      t.discountLabel || '-',
+    ]) || [];
 
   const sold = reportData?.shopClientTransactions.filter((t) => t.operationType === 'Sold') || [];
   const refunded =
@@ -186,6 +188,7 @@ export default function DailyReportPreviewDialog({
               <>
                 <SectionTable
                   title="Sales"
+                  legend={reportData.discountLegend || DISCOUNT_LEGEND}
                   headers={['Date', 'Invoice', 'Item', 'Brand', 'Qty', 'Total', 'Type', 'Discount']}
                   rows={salesRows}
                   emptyMessage="No sales transactions found."
