@@ -153,11 +153,14 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
         itemPrice,
         itemDuration,
         itemType: 'service',
-        stockQuantity: stockQuantity ? Number(stockQuantity) : 0,
         companyID,
         brandId: brandId || null,
         outletId: formOutletId,
       };
+
+      if (!isEdit) {
+        payload.stockQuantity = stockQuantity ? Number(stockQuantity) : 0;
+      }
 
       if (isEdit) {
         await updateItemApi(payload, id, true);
@@ -270,9 +273,11 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
               </RHFSelect>
               <RHFTextField 
                 name="stockQuantity" 
-                label="Stock Quantity" 
+                label={isEdit ? 'Stock Quantity (use Add Stock on product list)' : 'Initial Stock Quantity'}
                 type="number"
                 inputProps={{ min: 0 }}
+                disabled={isEdit}
+                helperText={isEdit ? 'Change stock from the product list using Add Stock or Set Count' : undefined}
               />
             </Box>
 

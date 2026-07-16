@@ -18,9 +18,8 @@ import FormProvider, { RHFSelect, RHFTextField } from '../../../components/hook-
 import { PATH_DASHBOARD } from '../../../routes/paths';
 import { useAuthContext } from 'src/auth/useAuthContext';
 import { useOutlet } from 'src/contexts/OutletContext';
-import { DISCOUNT_TYPE_OPTIONS } from 'src/utils/discountCalculation';
-import type { DiscountType } from 'src/utils/discountCalculation';
-import { DEFAULT_OUTLET, OUTLETS, OutletScope } from 'src/config/outlets';
+import { OUTLETS, DEFAULT_OUTLET, OutletScope } from 'src/config/outlets';
+import { DISCOUNT_TYPE_OPTIONS } from 'src/utils/discountCalc';
 // ----------------------------------------------------------------------
 
 type FormValuesProps = {
@@ -28,8 +27,8 @@ type FormValuesProps = {
   offPercentage: string;
   description: string;
   itemID: string;
-  discountName: string;
-  discountType: DiscountType;
+  discountName:string;
+  discountType: 'combined' | 'brand' | 'store';
   outletId: OutletScope;
   id: string;
 };
@@ -66,9 +65,6 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
       outletId: Yup.string()
         .oneOf([...OUTLETS, 'combined'], 'Select a valid outlet')
         .required('Outlet is required'),
-      discountType: Yup.string()
-        .oneOf(['combined', 'brand', 'store'], 'Select a valid discount type')
-        .required('Discount type is required'),
   });
 
   const defaultValues = useMemo(
@@ -125,17 +121,17 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
   const onSubmit = async (data: FormValuesProps) => {
     try {
       // Destructure the properties from the data object
-      const { itemName, offPercentage, description, itemID, discountName, outletId: formOutletId, id, discountType } = data;
+      const { itemName, offPercentage, description, itemID, discountName, discountType, outletId: formOutletId, id } = data;
 
       const payload = {
         itemName,
         offPercentage,
+        discountType,
         description,
         companyID,
         discountName,
         itemID,
         outletId: formOutletId,
-        discountType,
       };
 
       if (isEdit) {
@@ -198,11 +194,11 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
                 }}
               />
               <RHFTextField name="offPercentage" label="OFF Percentage" />
-              <RHFSelect name="discountType" label="Discount Type">
+              <RHFSelect native name="discountType" label="Discount Type">
                 {DISCOUNT_TYPE_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
+                  <option key={option.value} value={option.value}>
                     {option.label}
-                  </MenuItem>
+                  </option>
                 ))}
               </RHFSelect>
               <RHFTextField name="description" label="Description" />

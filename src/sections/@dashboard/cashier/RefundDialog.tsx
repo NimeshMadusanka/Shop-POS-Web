@@ -48,7 +48,7 @@ export default function RefundDialog({ open, onClose, companyID, onRefundSuccess
       const data = await getPaymentData(companyID);
       // Filter out already refunded payments and sort by date (recent first)
       const sorted = data
-        .filter((p: NewPaymentCreate) => !(p as any).refunded)
+        .filter((p: NewPaymentCreate) => !(p as any).refunded && !(p as any).isReversal)
         .sort((a: NewPaymentCreate, b: NewPaymentCreate) => {
           const dateA = new Date(a.date || 0).getTime();
           const dateB = new Date(b.date || 0).getTime();

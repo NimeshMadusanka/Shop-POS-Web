@@ -23,8 +23,9 @@ import { getLowStockStatus } from 'src/utils/groupLowStockByBrand';
 import { groupLowStockByOutletAndBrand } from 'src/utils/groupLowStockByOutletAndBrand';
 import AlignedGroupedTables from 'src/components/table/AlignedGroupedTables';
 import { OUTLETS, OutletId } from 'src/config/outlets';
+import { DISCOUNT_LEGEND } from 'src/utils/discountCalc';
 import Iconify from '../../../components/iconify';
-import { DISCOUNT_LEGEND } from 'src/utils/discountCalculation';
+import Scrollbar from '../../../components/scrollbar';
 
 type Props = {
   open: boolean;
@@ -44,13 +45,11 @@ const formatLkr = (n: number) => `LKR ${Number(n || 0).toFixed(2)}`;
 
 function SectionTable({
   title,
-  legend,
   headers,
   rows,
   emptyMessage,
 }: {
   title: string;
-  legend?: string;
   headers: string[];
   rows: (string | number)[][];
   emptyMessage?: string;
@@ -60,11 +59,6 @@ function SectionTable({
       <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
         {title}
       </Typography>
-      {legend ? (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-          {legend}
-        </Typography>
-      ) : null}
       {rows.length === 0 ? (
         <Typography variant="body2" color="text.secondary" fontStyle="italic">
           {emptyMessage || 'No records found.'}
@@ -122,16 +116,21 @@ export default function DailyReportPreviewDialog({
     ]) || [];
 
   const salesRows =
-    reportData?.shopClientTransactions.map((t) => [
-      new Date(t.date).toLocaleDateString(),
-      t.invoiceNumber || 'N/A',
-      t.itemName || 'N/A',
-      t.brandName || 'N/A',
-      t.quantity ?? 0,
-      formatLkr(Number(t.total || 0)),
-      t.operationType || 'N/A',
-      t.discountLabel || '-',
-    ]) || [];
+    reportData?.shopClientTransactions.map((t) => {
+      const discountLabel =
+        t.discountLabel ||
+        (Number(t.discountAmount || 0) > 0 ? `cd-${Number(t.discountAmount).toFixed(0)}` : '');
+      return [
+        new Date(t.date).toLocaleDateString(),
+        t.invoiceNumber || 'N/A',
+        t.itemName || 'N/A',
+        t.brandName || 'N/A',
+        t.quantity ?? 0,
+        formatLkr(Number(t.total || 0)),
+        t.operationType || 'N/A',
+        discountLabel || '-',
+      ];
+    }) || [];
 
   const sold = reportData?.shopClientTransactions.filter((t) => t.operationType === 'Sold') || [];
   const refunded =
@@ -186,9 +185,11 @@ export default function DailyReportPreviewDialog({
 
             {showSales && (
               <>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                  {DISCOUNT_LEGEND}
+                </Typography>
                 <SectionTable
                   title="Sales"
-                  legend={reportData.discountLegend || DISCOUNT_LEGEND}
                   headers={['Date', 'Invoice', 'Item', 'Brand', 'Qty', 'Total', 'Type', 'Discount']}
                   rows={salesRows}
                   emptyMessage="No sales transactions found."
@@ -204,10 +205,13 @@ export default function DailyReportPreviewDialog({
                       Refunded: {refunded.length} line(s) ({formatLkr(totalRefunded)})
                     </Typography>
                     <Typography variant="body2">
+                      Gross (after discount, before refunds): {formatLkr(totalSold)}
+                    </Typography>
+                    <Typography variant="body2">
                       Total discount: {formatLkr(totalDiscount)}
                     </Typography>
                     <Typography variant="body2" fontWeight={600}>
-                      Net after discount: {formatLkr(totalSold)}
+                      Net Sale (sold − refunded): {formatLkr(totalSold - totalRefunded)}
                     </Typography>
                   </Box>
                 )}

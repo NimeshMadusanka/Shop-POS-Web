@@ -183,6 +183,10 @@ payrun: {
     root: path(ROOTS_DASHBOARD, '/daily-report'),
     list: path(ROOTS_DASHBOARD, '/daily-report/list'),
   },
+  auditLog: {
+    root: path(ROOTS_DASHBOARD, '/audit-log'),
+    list: path(ROOTS_DASHBOARD, '/audit-log/list'),
+  },
 
   category: {
     root: path(ROOTS_DASHBOARD, '/category'),

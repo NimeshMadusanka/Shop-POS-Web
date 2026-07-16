@@ -64,7 +64,6 @@ const TABLE_HEAD = [
   { id: 'discountName', label: 'Discount Name', align: 'left' },
   { id: 'itemName', label: 'Product Name', align: 'left' },
   { id: 'offPercentage', label: 'Off Percentage(%)', align: 'left' },
-  { id: 'discountType', label: 'Type', align: 'left' },
   { id: 'outletId', label: 'Outlet', align: 'left' },
   { id: 'description', label: 'Description', align: 'left' },
   { id: '', label: 'Action', align: 'left' },

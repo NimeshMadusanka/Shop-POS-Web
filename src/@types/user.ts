@@ -117,8 +117,6 @@ export type NewCategoryCreate = {
  description: string;
 };
 
-export type DiscountType = 'combined' | 'brand' | 'store';
-
 export type NewCusloyaltyCreate = {
   _id: string;
   itemName: string;
@@ -126,7 +124,7 @@ export type NewCusloyaltyCreate = {
   discountName:string;
   description: string;
   status: 'active' | 'inactive';
-  discountType?: DiscountType;
+  discountType?: 'combined' | 'brand' | 'store';
   itemID?: string;
   outletId?: OutletId;
 
@@ -370,14 +368,14 @@ export type IUserAccountGeneral = {
 };
 
 export type NewUserCreate = {
-  _id: string;
+  _id?: string;
   userName: string;
   email: string;
   role: string;
-  password: string;
+  password?: string;
   phoneNumber: string;
   emergencyPhoneNumber: string;
-  status: string;
+  status?: string;
   assignedOutletId?: OutletId | null;
 };
 

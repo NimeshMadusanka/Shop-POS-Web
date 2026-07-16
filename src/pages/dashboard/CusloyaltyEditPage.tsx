@@ -16,18 +16,9 @@ export default function CustomerEditPage() {
   const { themeStretch } = useSettingsContext();
   const location = useLocation();
 
-  const { _id, discountName, itemName, offPercentage, description, discountType, outletId } =
-    location.state;
+  const { _id, discountName, itemName, offPercentage, description } = location.state;
 
-  const userData = {
-    _id,
-    discountName,
-    itemName,
-    offPercentage,
-    description,
-    discountType,
-    outletId,
-  } as any;
+  const userData = { _id, discountName, itemName, offPercentage, description } as any;
 
   return (
     <>
