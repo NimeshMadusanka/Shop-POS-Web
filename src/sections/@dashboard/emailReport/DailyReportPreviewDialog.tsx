@@ -23,6 +23,7 @@ import { getLowStockStatus } from 'src/utils/groupLowStockByBrand';
 import { groupLowStockByOutletAndBrand } from 'src/utils/groupLowStockByOutletAndBrand';
 import AlignedGroupedTables from 'src/components/table/AlignedGroupedTables';
 import { OUTLETS, OutletId } from 'src/config/outlets';
+import { DISCOUNT_LEGEND } from 'src/utils/discountCalc';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -116,9 +117,9 @@ export default function DailyReportPreviewDialog({
 
   const salesRows =
     reportData?.shopClientTransactions.map((t) => {
-      const parts: string[] = [];
-      if (t.discountPercent) parts.push(`${Number(t.discountPercent).toFixed(1)}%`);
-      if (t.discountAmount) parts.push(formatLkr(Number(t.discountAmount)));
+      const discountLabel =
+        t.discountLabel ||
+        (Number(t.discountAmount || 0) > 0 ? `cd-${Number(t.discountAmount).toFixed(0)}` : '');
       return [
         new Date(t.date).toLocaleDateString(),
         t.invoiceNumber || 'N/A',
@@ -127,7 +128,7 @@ export default function DailyReportPreviewDialog({
         t.quantity ?? 0,
         formatLkr(Number(t.total || 0)),
         t.operationType || 'N/A',
-        parts.length ? parts.join(' / ') : '-',
+        discountLabel || '-',
       ];
     }) || [];
 
@@ -184,6 +185,9 @@ export default function DailyReportPreviewDialog({
 
             {showSales && (
               <>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                  {DISCOUNT_LEGEND}
+                </Typography>
                 <SectionTable
                   title="Sales"
                   headers={['Date', 'Invoice', 'Item', 'Brand', 'Qty', 'Total', 'Type', 'Discount']}
@@ -201,10 +205,13 @@ export default function DailyReportPreviewDialog({
                       Refunded: {refunded.length} line(s) ({formatLkr(totalRefunded)})
                     </Typography>
                     <Typography variant="body2">
+                      Gross (after discount, before refunds): {formatLkr(totalSold)}
+                    </Typography>
+                    <Typography variant="body2">
                       Total discount: {formatLkr(totalDiscount)}
                     </Typography>
                     <Typography variant="body2" fontWeight={600}>
-                      Net after discount: {formatLkr(totalSold)}
+                      Net Sale (sold − refunded): {formatLkr(totalSold - totalRefunded)}
                     </Typography>
                   </Box>
                 )}

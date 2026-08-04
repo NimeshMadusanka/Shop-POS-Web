@@ -18,7 +18,8 @@ import FormProvider, { RHFSelect, RHFTextField } from '../../../components/hook-
 import { PATH_DASHBOARD } from '../../../routes/paths';
 import { useAuthContext } from 'src/auth/useAuthContext';
 import { useOutlet } from 'src/contexts/OutletContext';
-import { DEFAULT_OUTLET, OUTLETS, OutletScope } from 'src/config/outlets';
+import { OUTLETS, DEFAULT_OUTLET, OutletScope } from 'src/config/outlets';
+import { DISCOUNT_TYPE_OPTIONS } from 'src/utils/discountCalc';
 // ----------------------------------------------------------------------
 
 type FormValuesProps = {
@@ -27,6 +28,7 @@ type FormValuesProps = {
   description: string;
   itemID: string;
   discountName:string;
+  discountType: 'combined' | 'brand' | 'store';
   outletId: OutletScope;
   id: string;
 };
@@ -71,6 +73,7 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
       itemName: userData?.itemName || '',
       description: userData?.description || '',
       offPercentage: userData?.offPercentage || '',
+      discountType: userData?.discountType || 'combined',
       outletId: ((userData as any)?.outletId as OutletScope | undefined) || outletId || DEFAULT_OUTLET,
 
       id: userData?._id || '',
@@ -118,11 +121,12 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
   const onSubmit = async (data: FormValuesProps) => {
     try {
       // Destructure the properties from the data object
-      const { itemName, offPercentage, description, itemID, discountName, outletId: formOutletId, id } = data;
+      const { itemName, offPercentage, description, itemID, discountName, discountType, outletId: formOutletId, id } = data;
 
       const payload = {
         itemName,
         offPercentage,
+        discountType,
         description,
         companyID,
         discountName,
@@ -190,6 +194,13 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
                 }}
               />
               <RHFTextField name="offPercentage" label="OFF Percentage" />
+              <RHFSelect native name="discountType" label="Discount Type">
+                {DISCOUNT_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </RHFSelect>
               <RHFTextField name="description" label="Description" />
             </Box>
 

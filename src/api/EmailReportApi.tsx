@@ -37,6 +37,9 @@ type ReportData = {
     operationType: string;
     discountPercent?: number;
     discountAmount?: number;
+    discountLabel?: string;
+    shopShare?: number;
+    brandShare?: number;
   }>;
   revenueShare?: {
     netTotal: number;

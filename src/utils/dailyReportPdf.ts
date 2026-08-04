@@ -5,6 +5,7 @@ import { ReportData } from 'src/api/EmailReportApi';
 import { getLowStockStatus } from 'src/utils/groupLowStockByBrand';
 import { groupLowStockByOutletAndBrand } from 'src/utils/groupLowStockByOutletAndBrand';
 import { OUTLETS, OutletId } from 'src/config/outlets';
+import { DISCOUNT_LEGEND } from 'src/utils/discountCalc';
 
 export type ReportFilter = 'all' | 'provider-shop' | 'shop-client';
 
@@ -165,15 +166,18 @@ export async function generateDailyReportPdf({
 
     if (reportData.shopClientTransactions.length > 0) {
       ensureSpace(30);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(DISCOUNT_LEGEND, marginLeft, currentY);
+      currentY += 6;
+      ensureSpace(30);
       autoTable(doc, {
         startY: currentY,
         head: [['Date', 'Invoice', 'Item Name', 'Brand', 'Qty', 'Total', 'Type', 'Discount']],
         body: reportData.shopClientTransactions.map((t) => {
-          const discountPercent = t.discountPercent ?? null;
-          const discountAmount = Number(t.discountAmount ?? 0);
-          const parts: string[] = [];
-          if (discountPercent) parts.push(`${discountPercent}%`);
-          if (discountAmount) parts.push(`LKR ${discountAmount.toFixed(2)}`);
+          const discountLabel =
+            t.discountLabel ||
+            (Number(t.discountAmount || 0) > 0 ? `cd-${Number(t.discountAmount).toFixed(0)}` : '');
           return [
             new Date(t.date).toLocaleDateString(),
             truncateText(t.invoiceNumber || 'N/A', 18),
@@ -182,7 +186,7 @@ export async function generateDailyReportPdf({
             String(t.quantity || 0),
             `LKR ${Number(t.total || 0).toFixed(2)}`,
             truncateText(t.operationType || 'N/A', 10),
-            parts.length ? parts.join(' / ') : '-',
+            discountLabel || '-',
           ];
         }),
         theme: 'grid',
@@ -197,19 +201,18 @@ export async function generateDailyReportPdf({
       const refunded = reportData.shopClientTransactions.filter((t) => t.operationType === 'Refunded');
       const totalSoldAmount = sold.reduce((sum, t) => sum + (t.total || 0), 0);
       const totalRefundedAmount = refunded.reduce((sum, t) => sum + (t.total || 0), 0);
-      const totalDiscountAmount = reportData.shopClientTransactions.reduce(
-        (sum, t) => sum + Number(t.discountAmount || 0),
-        0
-      );
+      const totalDiscountAmount = sold.reduce((sum, t) => sum + Number(t.discountAmount || 0), 0);
+      const grossBeforeDiscount = totalSoldAmount + totalDiscountAmount;
+      const netSale = totalSoldAmount - totalRefundedAmount;
 
-      ensureSpace(60);
+      ensureSpace(70);
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text('Summary', marginLeft, currentY);
       currentY += 8;
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Total Sold: ${sold.length} transactions`, marginLeft, currentY);
+      doc.text(`Total Sold: ${sold.length} line(s)`, marginLeft, currentY);
       currentY += 6;
       doc.text(
         `Total Products Sold: ${sold.reduce((s, t) => s + (t.quantity || 0), 0)} items`,
@@ -218,20 +221,24 @@ export async function generateDailyReportPdf({
       );
       currentY += 6;
       doc.text(
-        `Total Refunded: ${refunded.length} transactions (LKR ${totalRefundedAmount.toFixed(2)})`,
+        `Total Refunded: ${refunded.length} line(s) (LKR ${totalRefundedAmount.toFixed(2)})`,
         marginLeft,
         currentY
       );
       currentY += 6;
-      doc.text(
-        `Total Sale: LKR ${(totalSoldAmount + totalDiscountAmount).toFixed(2)}`,
-        marginLeft,
-        currentY
-      );
+      doc.text(`Gross Sale (before refunds): LKR ${grossBeforeDiscount.toFixed(2)}`, marginLeft, currentY);
       currentY += 6;
       doc.text(`Total Discount applied: LKR ${totalDiscountAmount.toFixed(2)}`, marginLeft, currentY);
       currentY += 6;
-      doc.text(`Total Sale After Discount: LKR ${totalSoldAmount.toFixed(2)}`, marginLeft, currentY);
+      doc.text(
+        `Sale After Discount (before refunds): LKR ${totalSoldAmount.toFixed(2)}`,
+        marginLeft,
+        currentY
+      );
+      currentY += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Net Sale (sold − refunded): LKR ${netSale.toFixed(2)}`, marginLeft, currentY);
+      doc.setFont('helvetica', 'normal');
       currentY += 10;
 
       if (reportData.revenueShare) {
@@ -471,37 +478,71 @@ export function computePaymentMethodTotals(
   dateTo: Moment | null,
   selectedBrand: { _id: string } | null
 ): PaymentMethodTotals {
-  const fromDate = dateFrom ? dateFrom.clone().startOf('day') : null;
-  const toDate = dateTo ? dateTo.clone().endOf('day') : null;
-  const filtered = (Array.isArray(payments) ? payments : []).filter((payment: any) => {
-    const paymentDate = moment(payment.date || payment.createdAt);
-    const withinRange =
-      (!fromDate || paymentDate.isSameOrAfter(fromDate)) &&
-      (!toDate || paymentDate.isSameOrBefore(toDate));
-    const matchesBrand =
-      !selectedBrand?._id ||
-      (payment.items || []).some(
-        (item: any) =>
-          (item.brandId?._id || item.brandId)?.toString() === selectedBrand._id.toString()
-      );
-    return withinRange && matchesBrand;
-  });
+  const fromStr = dateFrom ? dateFrom.format('YYYY-MM-DD') : null;
+  const toStr = dateTo ? dateTo.format('YYYY-MM-DD') : null;
 
-  return filtered.reduce(
+  const inRange = (ymd: string | null) =>
+    Boolean(ymd && (!fromStr || ymd >= fromStr) && (!toStr || ymd <= toStr));
+
+  const isReversal = (payment: any) => {
+    const invoice = String(payment.invoiceNumber || '');
+    return (
+      Boolean(payment.isReversal || payment.reversalOf) ||
+      /^REV-/i.test(invoice) ||
+      Number(payment.grandTotal) < 0
+    );
+  };
+
+  const matchesBrand = (payment: any) =>
+    !selectedBrand?._id ||
+    (payment.items || []).some(
+      (item: any) =>
+        (item.brandId?._id || item.brandId)?.toString() === selectedBrand._id.toString()
+    );
+
+  const addSigned = (
+    acc: PaymentMethodTotals,
+    payment: any,
+    sign: number
+  ): PaymentMethodTotals => {
+    const cash = Number(payment.cashPaid) || 0;
+    const wire = Number(payment.wirePaid) || 0;
+    const card =
+      (Number(payment.creditPaid) || 0) + (Number(payment.debitPaid) || 0) ||
+      Number(payment.cardPaid) ||
+      0;
+    const net = Number(payment.grandTotal) || 0;
+    return {
+      cash: acc.cash + sign * cash,
+      card: acc.card + sign * card,
+      wire: acc.wire + sign * wire,
+      net: acc.net + sign * net,
+    };
+  };
+
+  return (Array.isArray(payments) ? payments : []).reduce(
     (acc, payment: any) => {
-      const sign = payment.refunded ? -1 : 1;
-      const cash = Number(payment.cashPaid) || 0;
-      const wire = Number(payment.wirePaid) || 0;
-      const card =
-        (Number(payment.creditPaid) || 0) +
-          (Number(payment.debitPaid) || 0) || Number(payment.cardPaid) || 0;
-      const net = Number(payment.grandTotal) || 0;
-      return {
-        cash: acc.cash + sign * cash,
-        card: acc.card + sign * card,
-        wire: acc.wire + sign * wire,
-        net: acc.net + sign * net,
-      };
+      if (!matchesBrand(payment)) return acc;
+
+      const createdDay = payment.createdAt
+        ? moment(payment.createdAt).format('YYYY-MM-DD')
+        : null;
+      const refundDay = payment.refundedAt
+        ? moment(payment.refundedAt).format('YYYY-MM-DD')
+        : null;
+      const saleIn = inRange(createdDay);
+      const refundIn = Boolean(payment.refunded) && inRange(refundDay);
+
+      if (isReversal(payment)) {
+        // Amounts already stored negative on reversal docs
+        return saleIn ? addSigned(acc, payment, 1) : acc;
+      }
+
+      let next = acc;
+      if (saleIn) next = addSigned(next, payment, 1);
+      // Full refunds store positive amounts on the original — flip on refund day
+      if (refundIn) next = addSigned(next, payment, -1);
+      return next;
     },
     { cash: 0, card: 0, wire: 0, net: 0 }
   );

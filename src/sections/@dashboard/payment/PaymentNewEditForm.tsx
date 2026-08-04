@@ -39,6 +39,7 @@ import { RHFTextField } from '../../../components/hook-form';
 import { useAuthContext } from 'src/auth/useAuthContext';
 import { PATH_DASHBOARD } from '../../../routes/paths';
 import { useOutlet } from 'src/contexts/OutletContext';
+import { DISCOUNT_TYPE_OPTIONS } from 'src/utils/discountCalc';
 // ----------------------------------------------------------------------
 
 type FormValuesProps = {
@@ -62,6 +63,7 @@ type FormValuesProps = {
   // discountName:string;
   // newoffPercentage?: number;
   billDiscountPercentage?: number;
+  billDiscountType?: 'combined' | 'brand' | 'store';
   // HR-RELATED FEATURE - COMMENTED OUT
   // commissionAmount: string;
   // empName: string;
@@ -128,6 +130,7 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
       // commission: userData?.commission ?? false, // ✅ default to false
       // REMOVED: addLoyalty - item discounts are now automatic
       billDiscountPercentage: userData?.billDiscountPercentage || 0,
+      billDiscountType: (userData as any)?.billDiscountType || 'combined',
       id: userData?._id || '',
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -221,6 +224,7 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
         customerPhoneNumber,
         date,
         billDiscountPercentage,
+        billDiscountType,
         // HR-RELATED FEATURE - COMMENTED OUT
         // commission,
         // commissionAmount,
@@ -271,6 +275,7 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
         // empName,
         newoffPercentage: 0, // Not used - item discounts are automatic
         billDiscountPercentage: billDiscountPercentage || 0,
+        billDiscountType: billDiscountType || 'combined',
         date: formattedDate,
         companyID,
         outletId: outletId === 'combined' ? undefined : outletId,
@@ -459,8 +464,23 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
       label="Bill Discount (%)"
       type="number"
       inputProps={{ min: 0, max: 100, step: 0.01 }}
-      helperText="Apply discount to entire bill after item discounts"
+      helperText="Discount % after item discounts"
     />
+  </Grid>
+  <Grid item xs={12} md={6}>
+    <RHFTextField
+      name="billDiscountType"
+      label="Bill Discount Type"
+      select
+      SelectProps={{ native: true }}
+      defaultValue="combined"
+    >
+      {DISCOUNT_TYPE_OPTIONS.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </RHFTextField>
   </Grid>
 </Grid>
             </Box>

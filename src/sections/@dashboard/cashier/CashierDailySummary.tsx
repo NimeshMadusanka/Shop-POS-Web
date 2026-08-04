@@ -50,9 +50,14 @@ export default function CashierDailySummary({ companyID, refreshKey = 0 }: Props
   const loadDaily = useCallback(async () => {
     if (!companyID) return;
     const data = await getPaymentData(companyID);
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+      now.getDate()
+    ).padStart(2, '0')}`;
     const filtered = (Array.isArray(data) ? data : []).filter((payment: PaymentLike) => {
-      const paymentDate = payment.date || payment.createdAt?.split('T')[0];
+      const paymentDate =
+        (typeof payment.date === 'string' && payment.date.slice(0, 10)) ||
+        payment.createdAt?.split('T')[0];
       return paymentDate === today;
     });
     setTodayPayments(filtered);

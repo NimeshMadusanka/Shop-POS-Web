@@ -124,6 +124,7 @@ export type NewCusloyaltyCreate = {
   discountName:string;
   description: string;
   status: 'active' | 'inactive';
+  discountType?: 'combined' | 'brand' | 'store';
   itemID?: string;
   outletId?: OutletId;
 
@@ -367,14 +368,14 @@ export type IUserAccountGeneral = {
 };
 
 export type NewUserCreate = {
-  _id: string;
+  _id?: string;
   userName: string;
   email: string;
   role: string;
-  password: string;
+  password?: string;
   phoneNumber: string;
   emergencyPhoneNumber: string;
-  status: string;
+  status?: string;
   assignedOutletId?: OutletId | null;
 };
 

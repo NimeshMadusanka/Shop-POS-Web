@@ -12,7 +12,7 @@ import {
   Container,
   TableContainer,
 } from '@mui/material';
-import { getUserData } from 'src/api/UserApi';
+import { getUserData, deleteUserApi } from 'src/api/UserApi';
 // routes
 import { PATH_DASHBOARD } from '../../routes/paths';
 // @types
@@ -32,6 +32,8 @@ import {
   TablePaginationCustom,
 } from '../../components/table';
 import Loader from '../../components/loading-screen';
+import ConfirmDialog from '../../components/confirm-dialog';
+import { useSnackbar } from '../../components/snackbar';
 // sections
 import { UserTableToolbar, UserTableRow } from '../../sections/@dashboard/user/list';
 
@@ -85,8 +87,10 @@ export default function UserListPage() {
   const { themeStretch } = useSettingsContext();
 
   const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
 
   const [tableData, setTableData] = useState([]);
+  const [deleteTarget, setDeleteTarget] = useState<NewUserCreate | null>(null);
 
   const [filterName, setFilterName] = useState('');
 
@@ -123,22 +127,33 @@ export default function UserListPage() {
     setFilterRole(event.target.value);
   };
 
-  const handleDeleteRow = (id: string) => {
-   
-    const deleteRow = tableData.filter((row:NewUserCreate) => row?._id !== id);
-
-    setSelected([]);
-    setTableData(deleteRow);
-
-    if (page > 0) {
-      if (dataInPage.length < 2) {
+  const handleDeleteRow = async () => {
+    if (!deleteTarget?._id) return;
+    try {
+      await deleteUserApi(deleteTarget._id);
+      const deleteRow = tableData.filter((row: NewUserCreate) => row?._id !== deleteTarget._id);
+      setSelected([]);
+      setTableData(deleteRow);
+      enqueueSnackbar('User deleted successfully');
+      if (page > 0 && dataInPage.length < 2) {
         setPage(page - 1);
       }
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || error?.message || 'Failed to delete user';
+      enqueueSnackbar(message, { variant: 'error' });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
-  const handleEditRow = (id: string, row:any) => {
-    navigate(PATH_DASHBOARD.user.edit(paramCase(id)),row);
+  const handleEditRow = (id: string, row: any) => {
+    const userName =
+      row?.userName ||
+      [row?.firstName, row?.lastName].filter(Boolean).join(' ').trim();
+    navigate(PATH_DASHBOARD.user.edit(paramCase(id)), {
+      state: { ...row, userName },
+    });
   };
 
   const handleResetFilter = () => {
@@ -226,14 +241,15 @@ export default function UserListPage() {
                   <TableBody>
                     {dataFiltered
                       .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                      .filter((row): row is NewUserCreate & { _id: string } => Boolean(row._id))
                       .map((row) => (
                         <UserTableRow
                           key={row._id}
                           row={row}
                           selected={selected.includes(row._id)}
                           onSelectRow={() => onSelectRow(row._id)}
-                          onDeleteRow={() => handleDeleteRow(row._id)}
-                          onEditRow={() => handleEditRow(row.userName, { state: row })}
+                          onDeleteRow={() => setDeleteTarget(row)}
+                          onEditRow={() => handleEditRow(row._id, row)}
                         />
                       ))}
 
@@ -259,6 +275,28 @@ export default function UserListPage() {
           </Card>
         )}
       </Container>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete user"
+        content={
+          deleteTarget
+            ? `Are you sure you want to delete ${
+                (deleteTarget as any).userName ||
+                [(deleteTarget as any).firstName, (deleteTarget as any).lastName]
+                  .filter(Boolean)
+                  .join(' ') ||
+                deleteTarget.email
+              }? This cannot be undone.`
+            : ''
+        }
+        action={
+          <Button variant="contained" color="error" onClick={handleDeleteRow}>
+            Delete
+          </Button>
+        }
+      />
     </>
   );
 }

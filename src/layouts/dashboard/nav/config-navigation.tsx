@@ -71,6 +71,7 @@ const navConfigAdmin = [
           { title: 'Analytics', path: PATH_DASHBOARD.analytics.list },
           { title: 'Sales Report', path: PATH_DASHBOARD.salesReport.list },
           { title: 'Daily Reports', path: PATH_DASHBOARD.dailyReport.list },
+          { title: 'Audit Log', path: PATH_DASHBOARD.auditLog.list },
         ],
       },
 

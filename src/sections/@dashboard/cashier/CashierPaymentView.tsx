@@ -13,6 +13,7 @@ import {
   TextField,
   Autocomplete,
   IconButton,
+  MenuItem,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
@@ -31,6 +32,12 @@ import PaymentEntryDialog from './PaymentEntryDialog';
 import PaymentSuccessDialog from './PaymentSuccessDialog';
 import { getShopData } from '../../../api/ShopApi';
 import RefundFlowDialog from './RefundFlowDialog';
+import {
+  computeLineEconomics,
+  DISCOUNT_TYPE_OPTIONS,
+  DiscountType,
+  normalizeDiscountType,
+} from '../../../utils/discountCalc';
 
 interface Item {
   _id: string;
@@ -54,6 +61,7 @@ interface CartItem {
   itemPrice: number;
   quantity: number;
   offPercentage?: number;
+  discountType?: DiscountType;
   brandId?: string;
   brandName?: string;
   commissionPercent?: number;
@@ -64,6 +72,7 @@ interface Discount {
   itemID: string;
   itemName: string;
   offPercentage: number;
+  discountType?: DiscountType;
   status: 'active' | 'inactive';
 }
 
@@ -81,6 +90,7 @@ export default function CashierPaymentView() {
   const [selectedProduct, setSelectedProduct] = useState<Item | null>(null);
   const [quantity, setQuantity] = useState<string>('');
   const [billDiscountPercentage, setBillDiscountPercentage] = useState<number | ''>(0);
+  const [billDiscountType, setBillDiscountType] = useState<DiscountType>('combined');
   const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
   const [openRefundFlowDialog, setOpenRefundFlowDialog] = useState(false);
   const [openPinDialog, setOpenPinDialog] = useState(false);
@@ -130,30 +140,46 @@ export default function CashierPaymentView() {
   const calculations = useMemo(() => {
     let subtotal = 0;
     let itemDiscount = 0;
+    let billDiscountAmount = 0;
+    let grandTotal = 0;
+    const billPct = Number(billDiscountPercentage) || 0;
+    const billType = normalizeDiscountType(billDiscountType);
 
     cartItems.forEach((item) => {
-      const itemSubtotal = item.itemPrice * item.quantity;
-      const discount = item.offPercentage || 0;
-      const discountAmount = (itemSubtotal * discount) / 100;
-      subtotal += itemSubtotal;
-      itemDiscount += discountAmount;
-    });
+      const lineGross = item.itemPrice * item.quantity;
+      subtotal += lineGross;
+      const commissionPercent = Number(item.commissionPercent) || 0;
+      const itemType = normalizeDiscountType(item.discountType);
 
-    const subtotalAfterItemDiscount = subtotal - itemDiscount;
-    const billDiscountAmount =
-      (subtotalAfterItemDiscount * (Number(billDiscountPercentage) || 0)) / 100;
-    const grandTotal = subtotalAfterItemDiscount - billDiscountAmount;
-    const totalDiscount = itemDiscount + billDiscountAmount;
+      const itemLine = computeLineEconomics({
+        lineGross,
+        itemOffPercent: item.offPercentage || 0,
+        itemDiscountType: itemType,
+        commissionPercent,
+      });
+      const fullLine = computeLineEconomics({
+        lineGross,
+        itemOffPercent: item.offPercentage || 0,
+        itemDiscountType: itemType,
+        billDiscountPercent: billPct,
+        billDiscountType: billType,
+        commissionPercent,
+      });
+
+      itemDiscount += itemLine.discountAmount;
+      billDiscountAmount += fullLine.discountAmount - itemLine.discountAmount;
+      grandTotal += fullLine.lineNet;
+    });
 
     return {
       subtotal,
       itemDiscount,
-      subtotalAfterItemDiscount,
+      subtotalAfterItemDiscount: subtotal - itemDiscount,
       billDiscountAmount,
       grandTotal,
-      totalDiscount,
+      totalDiscount: itemDiscount + billDiscountAmount,
     };
-  }, [cartItems, billDiscountPercentage]);
+  }, [cartItems, billDiscountPercentage, billDiscountType]);
 
   // Add product to cart
   const handleAddProduct = () => {
@@ -191,6 +217,7 @@ export default function CashierPaymentView() {
         itemPrice: Number(selectedProduct.itemPrice),
         quantity: qty,
         offPercentage: discount?.offPercentage || 0,
+        discountType: normalizeDiscountType(discount?.discountType),
         brandId: selectedProduct.brandId,
         brandName: brand?.brandName || '',
         commissionPercent: Number(brand?.commissionPercent) || 0,
@@ -282,39 +309,36 @@ export default function CashierPaymentView() {
         brandId: item.brandId,
         brandName: item.brandName,
         offPercentage: item.offPercentage || 0,
+        discountType: normalizeDiscountType(item.discountType),
       }));
 
-      // Recalculate totals to ensure we have the latest values
-      let subtotal = 0;
-      let itemDiscount = 0;
-
-      cartItems.forEach((item) => {
-        const itemSubtotal = item.itemPrice * item.quantity;
-        const discount = item.offPercentage || 0;
-        const discountAmount = (itemSubtotal * discount) / 100;
-        subtotal += itemSubtotal;
-        itemDiscount += discountAmount;
-      });
-
-      const subtotalAfterItemDiscount = subtotal - itemDiscount;
-      const billDiscountAmount =
-        (subtotalAfterItemDiscount * (Number(billDiscountPercentage) || 0)) / 100;
-      const grandTotal = subtotalAfterItemDiscount - billDiscountAmount;
+      const { grandTotal, itemDiscount, billDiscountAmount } = calculations;
       const commissionAmount = cartItems.reduce((sum, item) => {
-        const brand = brandData.find((b) => b._id === item.brandId);
-        const commissionPercent = Number(item.commissionPercent ?? brand?.commissionPercent) || 0;
-        const itemSubtotal = item.itemPrice * item.quantity;
-        const itemDiscountAmount = (itemSubtotal * (item.offPercentage || 0)) / 100;
-        const itemNet = itemSubtotal - itemDiscountAmount;
-        return sum + (itemNet * commissionPercent) / 100;
+        const commissionPercent = Number(item.commissionPercent) || 0;
+        const lineGross = item.itemPrice * item.quantity;
+        const line = computeLineEconomics({
+          lineGross,
+          itemOffPercent: item.offPercentage || 0,
+          itemDiscountType: normalizeDiscountType(item.discountType),
+          billDiscountPercent: Number(billDiscountPercentage) || 0,
+          billDiscountType: normalizeDiscountType(billDiscountType),
+          commissionPercent,
+        });
+        return sum + line.shopShare;
       }, 0);
+
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(
+        today.getDate()
+      ).padStart(2, '0')}`;
 
       const payload: any = {
         items: formattedItems,
         addLoyalty: false,
         newoffPercentage: 0,
         billDiscountPercentage: Number(billDiscountPercentage) || 0,
-        date: new Date().toISOString().split('T')[0],
+        billDiscountType: normalizeDiscountType(billDiscountType),
+        date: todayStr,
         companyID,
         cashPaid: finalCashPaid,
         creditPaid: finalCreditPaid,
@@ -342,6 +366,7 @@ export default function CashierPaymentView() {
         discount: itemDiscount,
         billDiscountAmount: billDiscountAmount,
         billDiscountPercentage: Number(billDiscountPercentage) || 0,
+        billDiscountType: normalizeDiscountType(billDiscountType),
         items: formattedItems, // Already includes offPercentage
       };
 
@@ -420,9 +445,11 @@ export default function CashierPaymentView() {
 
     setSendingReport(true);
     try {
-      // Get today's date in YYYY-MM-DD format
+      // Business calendar day (local), not UTC — avoids wrong day after ~18:30 in Sri Lanka
       const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(
+        today.getDate()
+      ).padStart(2, '0')}`;
       
       // Get shop ID if available
       const shopId = shopInfo?._id || null;
@@ -546,9 +573,13 @@ export default function CashierPaymentView() {
                 </TableRow>
               ) : (
                 cartItems.map((item, index) => {
-                  const itemSubtotal = item.itemPrice * item.quantity;
-                  const discountAmount = (itemSubtotal * (item.offPercentage || 0)) / 100;
-                  const itemTotal = itemSubtotal - discountAmount;
+                  const lineGross = item.itemPrice * item.quantity;
+                  const itemTotal = computeLineEconomics({
+                    lineGross,
+                    itemOffPercent: item.offPercentage || 0,
+                    itemDiscountType: normalizeDiscountType(item.discountType),
+                    commissionPercent: Number(item.commissionPercent) || 0,
+                  }).lineNet;
                   return (
                     <TableRow
                       key={index}
@@ -652,23 +683,43 @@ export default function CashierPaymentView() {
 
           {/* Bill Discount Input */}
           <Box sx={{ mt: 2, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-            <TextField
-              fullWidth
-              label="Bill Discount (%)"
-              type="number"
-              value={billDiscountPercentage}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value === '') {
-                  setBillDiscountPercentage('');
-                  return;
-                }
-                const num = Number(value);
-                setBillDiscountPercentage(Number.isNaN(num) ? 0 : num);
-              }}
-              inputProps={{ min: 0, max: 100, step: 0.01 }}
-              helperText="Apply discount to entire bill after item discounts"
-            />
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Bill Discount (%)"
+                  type="number"
+                  value={billDiscountPercentage}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      setBillDiscountPercentage('');
+                      return;
+                    }
+                    const num = Number(value);
+                    setBillDiscountPercentage(Number.isNaN(num) ? 0 : num);
+                  }}
+                  inputProps={{ min: 0, max: 100, step: 0.01 }}
+                  helperText="Discount % applied after item discounts"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Bill Discount Type"
+                  value={billDiscountType}
+                  onChange={(e) => setBillDiscountType(e.target.value as DiscountType)}
+                  helperText="Brand/store discounts apply to revenue share only"
+                >
+                  {DISCOUNT_TYPE_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            </Grid>
           </Box>
 
           <Divider sx={{ my: 3 }} />

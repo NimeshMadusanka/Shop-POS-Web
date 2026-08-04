@@ -1,6 +1,7 @@
 import * as Yup from 'yup';
 import { useEffect, useMemo, useState } from 'react';
-import { createUserApi } from 'src/api/UserApi';
+import { useNavigate } from 'react-router-dom';
+import { createUserApi, updateUserApi } from 'src/api/UserApi';
 // form
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -10,6 +11,7 @@ import { Box, Card, Grid, IconButton, InputAdornment, Stack } from '@mui/materia
 import { useAuthContext } from 'src/auth/useAuthContext';
 import Iconify from 'src/components/iconify/Iconify';
 import { OUTLETS } from 'src/config/outlets';
+import { PATH_DASHBOARD } from 'src/routes/paths';
 // @types
 import { NewUserCreate } from '../../../@types/user';
 // assets
@@ -42,6 +44,7 @@ type Props = {
 export default function UserNewEditForm({ isEdit = false, userData }: Props) {
 
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showPin, setShowPin] = useState(false);
   const { user} = useAuthContext();
@@ -64,19 +67,31 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
     email: Yup.string().email('Email must be a valid email address').required('Email is required'),
     role: Yup.string().required('Role is required'),
     password: Yup.string().when('role', {
-      is: 'cashier',
-      then: (schema) => schema.notRequired(),
-      otherwise: (schema) => schema
+      is: (role: string) => role !== 'cashier' && !isEdit,
+      then: (schema) => schema
         .required('Password is required')
         .min(8, 'Password must be at least 8 characters')
         .max(15, 'Password must be less than 15 characters'),
+      otherwise: (schema) => schema
+        .notRequired()
+        .test(
+          'password-length',
+          'Password must be at least 8 characters',
+          (value) => !value || (value.length >= 8 && value.length <= 15)
+        ),
     }),
     pin: Yup.string().when('role', {
-      is: 'cashier',
+      is: (role: string) => role === 'cashier' && !isEdit,
       then: (schema) => schema
         .required('PIN is required for cashier accounts')
         .matches(/^\d{6}$/, 'PIN must be exactly 6 digits'),
-      otherwise: (schema) => schema.notRequired(),
+      otherwise: (schema) => schema
+        .notRequired()
+        .test(
+          'pin-format',
+          'PIN must be exactly 6 digits',
+          (value) => !value || /^\d{6}$/.test(value)
+        ),
     }),
     assignedOutletId: Yup.string().when('role', {
       is: 'cashier',
@@ -99,9 +114,9 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
     email: userData?.email ? userData?.email : "",
     phoneNumber: userData?.phoneNumber ? userData?.phoneNumber : "",
     emergencyPhoneNumber: userData?.emergencyPhoneNumber ? userData?.emergencyPhoneNumber : "",
-    password: userData?.password ? userData?.password : "",
+    password: '',
     pin: '',
-    role: 'admin',
+    role: userData?.role || 'admin',
     assignedOutletId: (userData as any)?.assignedOutletId || '',
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -143,21 +158,39 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
           role: data?.role,
         };
 
-        // Add password for admin, PIN for cashier
         if (data?.role === 'cashier') {
-          payload.pin = data?.pin;
+          if (data?.pin) {
+            payload.pin = data.pin;
+          }
           payload.assignedOutletId = data?.assignedOutletId;
         } else {
-          payload.password = data?.password;
+          if (data?.password) {
+            payload.password = data.password;
+          }
           payload.assignedOutletId = null;
         }
 
-          await createUserApi(payload, true);
-          reset(defaultValues);
-          enqueueSnackbar('Create successfully!');
+        if (isEdit && userData?._id) {
+          await updateUserApi(userData._id, payload);
+          enqueueSnackbar('User updated successfully!');
+          navigate(PATH_DASHBOARD.user.list);
+          return;
+        }
 
-    } catch (error) {
-      enqueueSnackbar(error.message ??'Error creating account!', {
+        if (data?.role === 'cashier') {
+          payload.pin = data?.pin;
+        } else {
+          payload.password = data?.password;
+        }
+
+        await createUserApi(payload, true);
+        reset(defaultValues);
+        enqueueSnackbar('Create successfully!');
+
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || error?.message || (isEdit ? 'Error updating user!' : 'Error creating account!');
+      enqueueSnackbar(message, {
         variant: 'warning',
       });
     }
@@ -202,12 +235,12 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
               )}
               {selectedRole === 'cashier' ? (
                 <RHFTextField 
-                  required 
                   name="pin" 
-                  label="PIN (6 digits)" 
+                  label={isEdit ? 'New PIN (leave blank to keep)' : 'PIN (6 digits)'}
+                  required={!isEdit}
                   type={showPin ? 'text' : 'password'}
                   inputProps={{ maxLength: 6, pattern: '[0-9]*' }}
-                  helperText="Enter a 6-digit PIN for cashier login"
+                  helperText={isEdit ? 'Enter a new 6-digit PIN only if you want to change it' : 'Enter a 6-digit PIN for cashier login'}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -220,9 +253,9 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
                 />
               ) : (
                 <RHFTextField 
-                  required 
                   name="password" 
-                  label="Password"
+                  label={isEdit ? 'New password (leave blank to keep)' : 'Password'}
+                  required={!isEdit}
                   type={showPassword ? 'text' : 'password'}
                   InputProps={{
                     endAdornment: (
