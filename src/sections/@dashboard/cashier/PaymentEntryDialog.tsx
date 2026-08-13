@@ -30,7 +30,9 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
   const [cashAmount, setCashAmount] = useState<string>('');
   const [creditAmount, setCreditAmount] = useState<string>('');
   const [debitAmount, setDebitAmount] = useState<string>('');
+  const [confirming, setConfirming] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const confirmLockRef = useRef(false);
 
   // Calculate totals and balance
   const calculations = useMemo(() => {
@@ -86,6 +88,8 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
   };
 
   const handleConfirm = () => {
+    if (confirmLockRef.current || confirming) return;
+
     const { totalPaid, balance } = calculations;
 
     if (totalPaid < grandTotal) {
@@ -100,6 +104,8 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
       return;
     }
 
+    confirmLockRef.current = true;
+    setConfirming(true);
     onConfirm(calculations.cash, calculations.credit, calculations.debit);
     
     // Clear fields after successful payment confirmation
@@ -125,7 +131,11 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
       setCashAmount('');
       setCreditAmount('');
       setDebitAmount('');
+      setConfirming(false);
+      confirmLockRef.current = false;
     } else {
+      setConfirming(false);
+      confirmLockRef.current = false;
       // Focus the input field when dialog opens
       setTimeout(() => {
         inputRef.current?.focus();
@@ -363,9 +373,9 @@ export default function PaymentEntryDialog({ open, onClose, grandTotal, onConfir
           onClick={handleConfirm}
           variant="contained"
           color="primary"
-          disabled={calculations.totalPaid < grandTotal}
+          disabled={confirming || calculations.totalPaid < grandTotal}
         >
-          Confirm Payment
+          {confirming ? 'Processing...' : 'Confirm Payment'}
         </Button>
       </DialogActions>
     </Dialog>

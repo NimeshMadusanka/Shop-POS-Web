@@ -37,7 +37,7 @@ type PaymentLike = {
   debitPaid?: number | string;
   cardPaid?: number | string;
   refunded?: boolean;
-  refundedItems?: Array<{ quantity?: number }>;
+  refundedItems?: Array<{ quantity?: number; reversalPaymentId?: string }>;
   isReversal?: boolean;
   specialNote?: string;
 };
@@ -69,7 +69,7 @@ export default function CashierDailySummary({ companyID, refreshKey = 0 }: Props
 
   const summary = useMemo(() => {
     const soldPayments = todayPayments.filter((p) => !p.refunded && !p.isReversal);
-    const fullRefundedPayments = todayPayments.filter((p) => p.refunded);
+    const fullRefundedPayments = todayPayments.filter((p) => p.refunded && !p.isReversal);
     const partialRefundReversals = todayPayments.filter((p) => p.isReversal);
     const refundedPayments = [...fullRefundedPayments, ...partialRefundReversals];
 
@@ -105,7 +105,7 @@ export default function CashierDailySummary({ companyID, refreshKey = 0 }: Props
         invoiceNumber: payment.invoiceNumber || 'N/A',
         amount: Math.abs(Number(payment.grandTotal) || 0),
         type: payment.isReversal ? 'Partial Refund' : 'Full Refund',
-        note: payment.specialNote || (payment.isReversal ? 'Reversal entry' : 'Invoice refunded'),
+        note: payment.specialNote || (payment.isReversal ? 'Partial refund entry' : 'Invoice refunded'),
         items: (payment as any).items || [],
       })),
     };

@@ -180,7 +180,7 @@ export async function generateDailyReportPdf({
             (Number(t.discountAmount || 0) > 0 ? `cd-${Number(t.discountAmount).toFixed(0)}` : '');
           return [
             new Date(t.date).toLocaleDateString(),
-            truncateText(t.invoiceNumber || 'N/A', 18),
+            truncateText(t.invoiceNumber || 'N/A', 28),
             t.itemName || 'N/A',
             t.brandName || 'N/A',
             String(t.quantity || 0),
@@ -203,9 +203,10 @@ export async function generateDailyReportPdf({
       const totalRefundedAmount = refunded.reduce((sum, t) => sum + (t.total || 0), 0);
       const totalDiscountAmount = sold.reduce((sum, t) => sum + Number(t.discountAmount || 0), 0);
       const grossBeforeDiscount = totalSoldAmount + totalDiscountAmount;
-      const netSale = totalSoldAmount - totalRefundedAmount;
+      // Refunded = original sale lines flipped (already excluded from Sold). Do not subtract again.
+      const netSale = totalSoldAmount;
 
-      ensureSpace(70);
+      ensureSpace(80);
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text('Summary', marginLeft, currentY);
@@ -221,25 +222,32 @@ export async function generateDailyReportPdf({
       );
       currentY += 6;
       doc.text(
-        `Total Refunded: ${refunded.length} line(s) (LKR ${totalRefundedAmount.toFixed(2)})`,
+        `Total Refunded (flipped originals): ${refunded.length} line(s) (LKR ${totalRefundedAmount.toFixed(2)})`,
         marginLeft,
         currentY
       );
       currentY += 6;
-      doc.text(`Gross Sale (before refunds): LKR ${grossBeforeDiscount.toFixed(2)}`, marginLeft, currentY);
+      doc.text(`Gross Sale (before discounts): LKR ${grossBeforeDiscount.toFixed(2)}`, marginLeft, currentY);
       currentY += 6;
       doc.text(`Total Discount applied: LKR ${totalDiscountAmount.toFixed(2)}`, marginLeft, currentY);
       currentY += 6;
-      doc.text(
-        `Sale After Discount (before refunds): LKR ${totalSoldAmount.toFixed(2)}`,
-        marginLeft,
-        currentY
-      );
+      doc.text(`Sale After Discount: LKR ${totalSoldAmount.toFixed(2)}`, marginLeft, currentY);
       currentY += 6;
       doc.setFont('helvetica', 'bold');
-      doc.text(`Net Sale (sold − refunded): LKR ${netSale.toFixed(2)}`, marginLeft, currentY);
+      doc.text(`Net Sale: LKR ${netSale.toFixed(2)}`, marginLeft, currentY);
       doc.setFont('helvetica', 'normal');
-      currentY += 10;
+      currentY += 6;
+      doc.setFontSize(8);
+      doc.setTextColor(90);
+      doc.text(
+        'Note: Type=Refunded is the original sale line flipped after refund. It is already removed from Sold, so Net does not subtract it again.',
+        marginLeft,
+        currentY,
+        { maxWidth: pageWidth - marginLeft * 2 }
+      );
+      doc.setTextColor(0);
+      doc.setFontSize(10);
+      currentY += 12;
 
       if (reportData.revenueShare) {
         const rs = reportData.revenueShare;
@@ -488,7 +496,7 @@ export function computePaymentMethodTotals(
     const invoice = String(payment.invoiceNumber || '');
     return (
       Boolean(payment.isReversal || payment.reversalOf) ||
-      /^REV-/i.test(invoice) ||
+      /^(REV|REF)-/i.test(invoice) ||
       Number(payment.grandTotal) < 0
     );
   };

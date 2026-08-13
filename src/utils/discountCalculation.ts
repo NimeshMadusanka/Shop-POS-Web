@@ -2,16 +2,16 @@ export type DiscountType = 'combined' | 'brand' | 'store';
 
 export const DISCOUNT_TYPE_OPTIONS: { value: DiscountType; label: string }[] = [
   {
-    value: 'combined',
-    label: 'Combined — % off full item price (e.g. 5% of Rs 5000)',
-  },
-  {
     value: 'brand',
-    label: 'Brand discount (bd) — % off brand share only (e.g. 5% of Rs 3500)',
+    label: 'Brand Discount — % off full price, then split by commission',
   },
   {
     value: 'store',
-    label: 'Store discount (sd) — % off shop share only (e.g. 5% of Rs 1500)',
+    label: 'Store Discount — % off full price taken from store commission',
+  },
+  {
+    value: 'combined',
+    label: 'Combined — Brand Discount + Store Discount',
   },
 ];
 
@@ -50,13 +50,14 @@ export const calculateItemDiscountAmount = ({
 
   const gross = Number(lineGross) || 0;
   const type = normalizeDiscountType(discountType);
-  const shopPct = Math.min(100, Math.max(0, Number(commissionPercent) || 0));
-  const shopPortion = round2((gross * shopPct) / 100);
-  const brandPortion = round2(gross - shopPortion);
+  const requested = round2((gross * off) / 100);
 
-  if (type === 'brand') return round2((brandPortion * off) / 100);
-  if (type === 'store') return round2((shopPortion * off) / 100);
-  return round2((gross * off) / 100);
+  if (type === 'store') {
+    const shopPct = Math.min(100, Math.max(0, Number(commissionPercent) || 0));
+    const shopPortion = round2((gross * shopPct) / 100);
+    return round2(Math.min(requested, shopPortion));
+  }
+  return requested;
 };
 
 export const formatDiscountTag = (

@@ -61,6 +61,8 @@ interface CartItem {
   itemPrice: number;
   quantity: number;
   offPercentage?: number;
+  brandOffPercentage?: number;
+  storeOffPercentage?: number;
   discountType?: DiscountType;
   brandId?: string;
   brandName?: string;
@@ -90,7 +92,9 @@ export default function CashierPaymentView() {
   const [selectedProduct, setSelectedProduct] = useState<Item | null>(null);
   const [quantity, setQuantity] = useState<string>('');
   const [billDiscountPercentage, setBillDiscountPercentage] = useState<number | ''>(0);
-  const [billDiscountType, setBillDiscountType] = useState<DiscountType>('combined');
+  const [billBrandDiscountPercentage, setBillBrandDiscountPercentage] = useState<number | ''>(0);
+  const [billStoreDiscountPercentage, setBillStoreDiscountPercentage] = useState<number | ''>(0);
+  const [billDiscountType, setBillDiscountType] = useState<DiscountType>('brand');
   const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
   const [openRefundFlowDialog, setOpenRefundFlowDialog] = useState(false);
   const [openPinDialog, setOpenPinDialog] = useState(false);
@@ -99,6 +103,7 @@ export default function CashierPaymentView() {
   const [lastPaymentData, setLastPaymentData] = useState<any>(null);
   const [shopInfo, setShopInfo] = useState<any>(null);
   const [sendingReport, setSendingReport] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
   const [, setSummaryKey] = useState(0);
   // Admin unlock state removed - not currently used for conditional features
 
@@ -144,6 +149,8 @@ export default function CashierPaymentView() {
     let grandTotal = 0;
     const billPct = Number(billDiscountPercentage) || 0;
     const billType = normalizeDiscountType(billDiscountType);
+    const billBrandPct = Number(billBrandDiscountPercentage) || 0;
+    const billStorePct = Number(billStoreDiscountPercentage) || 0;
 
     cartItems.forEach((item) => {
       const lineGross = item.itemPrice * item.quantity;
@@ -155,14 +162,20 @@ export default function CashierPaymentView() {
         lineGross,
         itemOffPercent: item.offPercentage || 0,
         itemDiscountType: itemType,
+        itemBrandOffPercent: Number(item.brandOffPercentage) || 0,
+        itemStoreOffPercent: Number(item.storeOffPercentage) || 0,
         commissionPercent,
       });
       const fullLine = computeLineEconomics({
         lineGross,
         itemOffPercent: item.offPercentage || 0,
         itemDiscountType: itemType,
+        itemBrandOffPercent: Number(item.brandOffPercentage) || 0,
+        itemStoreOffPercent: Number(item.storeOffPercentage) || 0,
         billDiscountPercent: billPct,
         billDiscountType: billType,
+        billBrandOffPercent: billBrandPct,
+        billStoreOffPercent: billStorePct,
         commissionPercent,
       });
 
@@ -179,7 +192,13 @@ export default function CashierPaymentView() {
       grandTotal,
       totalDiscount: itemDiscount + billDiscountAmount,
     };
-  }, [cartItems, billDiscountPercentage, billDiscountType]);
+  }, [
+    cartItems,
+    billDiscountPercentage,
+    billDiscountType,
+    billBrandDiscountPercentage,
+    billStoreDiscountPercentage,
+  ]);
 
   // Add product to cart
   const handleAddProduct = () => {
@@ -211,13 +230,19 @@ export default function CashierPaymentView() {
       const discount = discountData.find((d) => d.itemID === selectedProduct._id);
       // Find brand name for this item
       const brand = brandData.find((b) => b._id === selectedProduct.brandId);
+      const discountType = normalizeDiscountType(discount?.discountType);
+      const off = discount?.offPercentage || 0;
+      const brandOff = discountType === 'store' ? 0 : off;
+      const storeOff = discountType === 'brand' ? 0 : discountType === 'store' ? off : 0;
       const newItem: CartItem = {
         itemId: selectedProduct._id,
         itemName: selectedProduct.itemName,
         itemPrice: Number(selectedProduct.itemPrice),
         quantity: qty,
-        offPercentage: discount?.offPercentage || 0,
-        discountType: normalizeDiscountType(discount?.discountType),
+        offPercentage: off,
+        brandOffPercentage: brandOff,
+        storeOffPercentage: storeOff,
+        discountType,
         brandId: selectedProduct.brandId,
         brandName: brand?.brandName || '',
         commissionPercent: Number(brand?.commissionPercent) || 0,
@@ -237,17 +262,80 @@ export default function CashierPaymentView() {
 
   const clampDiscountPercent = (value: number) => Math.min(100, Math.max(0, value));
 
-  // Update per-item discount (%)
-  const handleUpdateItemDiscount = (index: number, rawValue: string) => {
+  const syncItemOffPercentage = (item: CartItem) => {
+    const type = normalizeDiscountType(item.discountType);
+    const brandOff = Number(item.brandOffPercentage) || 0;
+    const storeOff = Number(item.storeOffPercentage) || 0;
+    if (type === 'combined') return brandOff + storeOff;
+    if (type === 'store') return storeOff;
+    return brandOff;
+  };
+
+  const handleUpdateItemDiscountType = (index: number, nextType: DiscountType) => {
     const updated = [...cartItems];
-    if (rawValue === '') {
-      updated[index] = { ...updated[index], offPercentage: 0 };
-      setCartItems(updated);
-      return;
+    const current = updated[index];
+    const brandOff = Number(current.brandOffPercentage) || 0;
+    const storeOff = Number(current.storeOffPercentage) || 0;
+    const legacyOff = Number(current.offPercentage) || 0;
+
+    let nextBrand = brandOff;
+    let nextStore = storeOff;
+
+    if (nextType === 'brand') {
+      nextBrand = brandOff || legacyOff;
+      nextStore = 0;
+    } else if (nextType === 'store') {
+      nextStore = storeOff || legacyOff;
+      nextBrand = 0;
+    } else if (nextType === 'combined') {
+      nextBrand = brandOff || (storeOff ? 0 : legacyOff);
+      nextStore = storeOff;
     }
-    const num = Number(rawValue);
-    if (Number.isNaN(num)) return;
-    updated[index] = { ...updated[index], offPercentage: clampDiscountPercent(num) };
+
+    const nextItem: CartItem = {
+      ...current,
+      discountType: nextType,
+      brandOffPercentage: nextBrand,
+      storeOffPercentage: nextStore,
+    };
+    nextItem.offPercentage = syncItemOffPercentage(nextItem);
+    updated[index] = nextItem;
+    setCartItems(updated);
+  };
+
+  const handleUpdateItemBrandDiscount = (index: number, rawValue: string) => {
+    const updated = [...cartItems];
+    const current = updated[index];
+    const brandOff = rawValue === '' ? 0 : clampDiscountPercent(Number(rawValue) || 0);
+    if (rawValue !== '' && Number.isNaN(Number(rawValue))) return;
+    const nextItem: CartItem = {
+      ...current,
+      brandOffPercentage: brandOff,
+      storeOffPercentage:
+        normalizeDiscountType(current.discountType) === 'brand'
+          ? 0
+          : Number(current.storeOffPercentage) || 0,
+    };
+    nextItem.offPercentage = syncItemOffPercentage(nextItem);
+    updated[index] = nextItem;
+    setCartItems(updated);
+  };
+
+  const handleUpdateItemStoreDiscount = (index: number, rawValue: string) => {
+    const updated = [...cartItems];
+    const current = updated[index];
+    const storeOff = rawValue === '' ? 0 : clampDiscountPercent(Number(rawValue) || 0);
+    if (rawValue !== '' && Number.isNaN(Number(rawValue))) return;
+    const nextItem: CartItem = {
+      ...current,
+      storeOffPercentage: storeOff,
+      brandOffPercentage:
+        normalizeDiscountType(current.discountType) === 'store'
+          ? 0
+          : Number(current.brandOffPercentage) || 0,
+    };
+    nextItem.offPercentage = syncItemOffPercentage(nextItem);
+    updated[index] = nextItem;
     setCartItems(updated);
   };
 
@@ -290,7 +378,9 @@ export default function CashierPaymentView() {
     finalCreditPaid: number,
     finalDebitPaid: number
   ) => {
+    if (processingPayment) return;
     try {
+      setProcessingPayment(true);
       if (!companyID) {
         enqueueSnackbar('Company ID is missing', { variant: 'error' });
         return;
@@ -309,10 +399,14 @@ export default function CashierPaymentView() {
         brandId: item.brandId,
         brandName: item.brandName,
         offPercentage: item.offPercentage || 0,
+        brandOffPercentage: Number(item.brandOffPercentage) || 0,
+        storeOffPercentage: Number(item.storeOffPercentage) || 0,
         discountType: normalizeDiscountType(item.discountType),
       }));
 
       const { grandTotal, itemDiscount, billDiscountAmount } = calculations;
+      const billBrandPct = Number(billBrandDiscountPercentage) || 0;
+      const billStorePct = Number(billStoreDiscountPercentage) || 0;
       const commissionAmount = cartItems.reduce((sum, item) => {
         const commissionPercent = Number(item.commissionPercent) || 0;
         const lineGross = item.itemPrice * item.quantity;
@@ -320,8 +414,12 @@ export default function CashierPaymentView() {
           lineGross,
           itemOffPercent: item.offPercentage || 0,
           itemDiscountType: normalizeDiscountType(item.discountType),
+          itemBrandOffPercent: Number(item.brandOffPercentage) || 0,
+          itemStoreOffPercent: Number(item.storeOffPercentage) || 0,
           billDiscountPercent: Number(billDiscountPercentage) || 0,
           billDiscountType: normalizeDiscountType(billDiscountType),
+          billBrandOffPercent: billBrandPct,
+          billStoreOffPercent: billStorePct,
           commissionPercent,
         });
         return sum + line.shopShare;
@@ -338,6 +436,8 @@ export default function CashierPaymentView() {
         newoffPercentage: 0,
         billDiscountPercentage: Number(billDiscountPercentage) || 0,
         billDiscountType: normalizeDiscountType(billDiscountType),
+        billBrandDiscountPercentage: billBrandPct,
+        billStoreDiscountPercentage: billStorePct,
         date: todayStr,
         companyID,
         cashPaid: finalCashPaid,
@@ -367,6 +467,8 @@ export default function CashierPaymentView() {
         billDiscountAmount: billDiscountAmount,
         billDiscountPercentage: Number(billDiscountPercentage) || 0,
         billDiscountType: normalizeDiscountType(billDiscountType),
+        billBrandDiscountPercentage: billBrandPct,
+        billStoreDiscountPercentage: billStorePct,
         items: formattedItems, // Already includes offPercentage
       };
 
@@ -385,6 +487,8 @@ export default function CashierPaymentView() {
     } catch (error: any) {
       console.error('Payment processing error:', error);
       enqueueSnackbar(error.message || 'Error processing payment', { variant: 'error' });
+    } finally {
+      setProcessingPayment(false);
     }
   };
 
@@ -419,6 +523,9 @@ export default function CashierPaymentView() {
   const resetForm = () => {
     setCartItems([]);
     setBillDiscountPercentage(0);
+    setBillBrandDiscountPercentage(0);
+    setBillStoreDiscountPercentage(0);
+    setBillDiscountType('brand');
     setSelectedProduct(null);
     setQuantity('');
     setSelectedBrand(null);
@@ -552,7 +659,13 @@ export default function CashierPaymentView() {
                   Unit Price
                 </TableCell>
                 <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: 'primary.main', fontSize: '15px' }}>
-                  Discount (%)
+                  Discount Type
+                </TableCell>
+                <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: 'primary.main', fontSize: '15px' }}>
+                  Brand Disc. (%)
+                </TableCell>
+                <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: 'primary.main', fontSize: '15px' }}>
+                  Store Disc. (%)
                 </TableCell>
                 <TableCell sx={{ color: '#fff', fontWeight: 'bold', backgroundColor: 'primary.main', fontSize: '15px' }}>
                   Total
@@ -565,7 +678,7 @@ export default function CashierPaymentView() {
             <TableBody>
               {cartItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={8} align="center">
                     <Typography variant="body2" color="text.secondary">
                       No products added
                     </Typography>
@@ -574,12 +687,17 @@ export default function CashierPaymentView() {
               ) : (
                 cartItems.map((item, index) => {
                   const lineGross = item.itemPrice * item.quantity;
+                  const itemType = normalizeDiscountType(item.discountType);
                   const itemTotal = computeLineEconomics({
                     lineGross,
                     itemOffPercent: item.offPercentage || 0,
-                    itemDiscountType: normalizeDiscountType(item.discountType),
+                    itemDiscountType: itemType,
+                    itemBrandOffPercent: Number(item.brandOffPercentage) || 0,
+                    itemStoreOffPercent: Number(item.storeOffPercentage) || 0,
                     commissionPercent: Number(item.commissionPercent) || 0,
                   }).lineNet;
+                  const showBrand = itemType === 'brand' || itemType === 'combined';
+                  const showStore = itemType === 'store' || itemType === 'combined';
                   return (
                     <TableRow
                       key={index}
@@ -612,25 +730,74 @@ export default function CashierPaymentView() {
                         />
                       </TableCell>
                       <TableCell sx={{ fontSize: '15px' }}>{item.itemPrice.toFixed(2)}</TableCell>
-                      <TableCell sx={{ fontSize: '15px' }}>
+                      <TableCell sx={{ fontSize: '15px', minWidth: 160 }}>
                         <TextField
-                          type="number"
-                          value={item.offPercentage === undefined ? '' : item.offPercentage}
-                          onChange={(e) => handleUpdateItemDiscount(index, e.target.value)}
-                          onBlur={(e) => {
-                            if (e.target.value === '') {
-                              handleUpdateItemDiscount(index, '0');
-                            }
-                          }}
-                          inputProps={{
-                            min: 0,
-                            max: 100,
-                            step: 0.01,
-                            style: { textAlign: 'center', width: '56px' },
-                          }}
+                          select
                           size="small"
-                          placeholder="0"
-                        />
+                          value={itemType}
+                          onChange={(e) =>
+                            handleUpdateItemDiscountType(index, e.target.value as DiscountType)
+                          }
+                          sx={{ minWidth: 150 }}
+                        >
+                          {DISCOUNT_TYPE_OPTIONS.map((option) => (
+                            <MenuItem key={option.value} value={option.value}>
+                              {option.label}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '15px' }}>
+                        {showBrand ? (
+                          <TextField
+                            type="number"
+                            value={item.brandOffPercentage === undefined ? '' : item.brandOffPercentage}
+                            onChange={(e) => handleUpdateItemBrandDiscount(index, e.target.value)}
+                            onBlur={(e) => {
+                              if (e.target.value === '') {
+                                handleUpdateItemBrandDiscount(index, '0');
+                              }
+                            }}
+                            inputProps={{
+                              min: 0,
+                              max: 100,
+                              step: 0.01,
+                              style: { textAlign: 'center', width: '56px' },
+                            }}
+                            size="small"
+                            placeholder="0"
+                          />
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            —
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '15px' }}>
+                        {showStore ? (
+                          <TextField
+                            type="number"
+                            value={item.storeOffPercentage === undefined ? '' : item.storeOffPercentage}
+                            onChange={(e) => handleUpdateItemStoreDiscount(index, e.target.value)}
+                            onBlur={(e) => {
+                              if (e.target.value === '') {
+                                handleUpdateItemStoreDiscount(index, '0');
+                              }
+                            }}
+                            inputProps={{
+                              min: 0,
+                              max: 100,
+                              step: 0.01,
+                              style: { textAlign: 'center', width: '56px' },
+                            }}
+                            size="small"
+                            placeholder="0"
+                          />
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            —
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell sx={{ fontSize: '15px' }}>{itemTotal.toFixed(2)}</TableCell>
                       <TableCell>
@@ -684,33 +851,29 @@ export default function CashierPaymentView() {
           {/* Bill Discount Input */}
           <Box sx={{ mt: 2, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Bill Discount (%)"
-                  type="number"
-                  value={billDiscountPercentage}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '') {
-                      setBillDiscountPercentage('');
-                      return;
-                    }
-                    const num = Number(value);
-                    setBillDiscountPercentage(Number.isNaN(num) ? 0 : num);
-                  }}
-                  inputProps={{ min: 0, max: 100, step: 0.01 }}
-                  helperText="Discount % applied after item discounts"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
                   select
                   label="Bill Discount Type"
                   value={billDiscountType}
-                  onChange={(e) => setBillDiscountType(e.target.value as DiscountType)}
-                  helperText="Brand/store discounts apply to revenue share only"
+                  onChange={(e) => {
+                    const nextType = e.target.value as DiscountType;
+                    setBillDiscountType(nextType);
+                    if (nextType === 'brand') {
+                      setBillStoreDiscountPercentage(0);
+                      setBillDiscountPercentage(Number(billBrandDiscountPercentage) || 0);
+                    } else if (nextType === 'store') {
+                      setBillBrandDiscountPercentage(0);
+                      setBillDiscountPercentage(Number(billStoreDiscountPercentage) || 0);
+                    } else {
+                      setBillDiscountPercentage(
+                        (Number(billBrandDiscountPercentage) || 0) +
+                          (Number(billStoreDiscountPercentage) || 0)
+                      );
+                    }
+                  }}
+                  helperText="Combined lets you enter Brand Discount and Store Discount together"
                 >
                   {DISCOUNT_TYPE_OPTIONS.map((option) => (
                     <MenuItem key={option.value} value={option.value}>
@@ -719,6 +882,72 @@ export default function CashierPaymentView() {
                   ))}
                 </TextField>
               </Grid>
+              {(billDiscountType === 'brand' || billDiscountType === 'combined') && (
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Brand Discount (%)"
+                    type="number"
+                    value={billBrandDiscountPercentage}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        setBillBrandDiscountPercentage('');
+                        setBillDiscountPercentage(
+                          billDiscountType === 'combined'
+                            ? Number(billStoreDiscountPercentage) || 0
+                            : 0
+                        );
+                        return;
+                      }
+                      const num = Number(value);
+                      if (Number.isNaN(num)) return;
+                      const clamped = clampDiscountPercent(num);
+                      setBillBrandDiscountPercentage(clamped);
+                      setBillDiscountPercentage(
+                        billDiscountType === 'combined'
+                          ? clamped + (Number(billStoreDiscountPercentage) || 0)
+                          : clamped
+                      );
+                    }}
+                    inputProps={{ min: 0, max: 100, step: 0.01 }}
+                    helperText="Price cut, then split by commission"
+                  />
+                </Grid>
+              )}
+              {(billDiscountType === 'store' || billDiscountType === 'combined') && (
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Store Discount (%)"
+                    type="number"
+                    value={billStoreDiscountPercentage}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        setBillStoreDiscountPercentage('');
+                        setBillDiscountPercentage(
+                          billDiscountType === 'combined'
+                            ? Number(billBrandDiscountPercentage) || 0
+                            : 0
+                        );
+                        return;
+                      }
+                      const num = Number(value);
+                      if (Number.isNaN(num)) return;
+                      const clamped = clampDiscountPercent(num);
+                      setBillStoreDiscountPercentage(clamped);
+                      setBillDiscountPercentage(
+                        billDiscountType === 'combined'
+                          ? (Number(billBrandDiscountPercentage) || 0) + clamped
+                          : clamped
+                      );
+                    }}
+                    inputProps={{ min: 0, max: 100, step: 0.01 }}
+                    helperText="Taken from store commission only"
+                  />
+                </Grid>
+              )}
             </Grid>
           </Box>
 

@@ -126,7 +126,9 @@ export default function RefundFlowDialog({ open, onClose, companyID, onRefundSuc
       setMode('partial');
       setQuantities({});
     } catch (error: any) {
-      enqueueSnackbar(error.response?.data?.message || 'Invoice not found', { variant: 'error' });
+      enqueueSnackbar(error.message || error.response?.data?.message || 'Invoice not found', {
+        variant: 'error',
+      });
     }
   };
 
@@ -178,7 +180,10 @@ export default function RefundFlowDialog({ open, onClose, companyID, onRefundSuc
       setQuantities({});
       setConfirmRefundId(null);
     } catch (error: any) {
-      enqueueSnackbar(error.response?.data?.message || 'Refund processing failed', { variant: 'error' });
+      enqueueSnackbar(
+        error.message || error.response?.data?.message || 'Refund processing failed',
+        { variant: 'error' }
+      );
     } finally {
       setProcessing(false);
     }

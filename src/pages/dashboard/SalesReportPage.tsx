@@ -722,7 +722,7 @@ function getSpecialNote(payment: any) {
     if (payment.refundedBy?.firstName || payment.refundedBy?.lastName) {
       return `Refunded by ${(payment.refundedBy.firstName || '').trim()} ${(payment.refundedBy.lastName || '').trim()}`.trim();
     }
-    return `Reversal of ${payment.invoiceNumber || 'invoice'}`;
+    return 'Invoice refunded';
   }
   if ((Number(payment.wirePaid) || 0) > 0) {
     return 'Wire transfer';
@@ -732,7 +732,7 @@ function getSpecialNote(payment: any) {
 
 function getRefundStatus(payment: any) {
   if (payment?.isReversal) {
-    return { label: 'Partially Refunded', color: 'warning' };
+    return { label: 'Refund', color: 'warning' };
   }
 
   const refundedItems = Array.isArray(payment?.refundedItems) ? payment.refundedItems : [];

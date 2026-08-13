@@ -137,8 +137,7 @@ export default function DailyReportPreviewDialog({
     reportData?.shopClientTransactions.filter((t) => t.operationType === 'Refunded') || [];
   const totalSold = sold.reduce((s, t) => s + Number(t.total || 0), 0);
   const totalRefunded = refunded.reduce((s, t) => s + Number(t.total || 0), 0);
-  const totalDiscount =
-    reportData?.shopClientTransactions.reduce((s, t) => s + Number(t.discountAmount || 0), 0) || 0;
+  const totalDiscount = sold.reduce((s, t) => s + Number(t.discountAmount || 0), 0);
 
   const rs = reportData?.revenueShare;
 
@@ -202,16 +201,20 @@ export default function DailyReportPreviewDialog({
                     </Typography>
                     <Typography variant="body2">Sold: {sold.length} line(s)</Typography>
                     <Typography variant="body2">
-                      Refunded: {refunded.length} line(s) ({formatLkr(totalRefunded)})
+                      Refunded (flipped originals): {refunded.length} line(s) ({formatLkr(totalRefunded)})
                     </Typography>
                     <Typography variant="body2">
-                      Gross (after discount, before refunds): {formatLkr(totalSold)}
+                      Gross (after discount): {formatLkr(totalSold)}
                     </Typography>
                     <Typography variant="body2">
                       Total discount: {formatLkr(totalDiscount)}
                     </Typography>
                     <Typography variant="body2" fontWeight={600}>
-                      Net Sale (sold − refunded): {formatLkr(totalSold - totalRefunded)}
+                      Net Sale: {formatLkr(totalSold)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                      Refunded = original sale line flipped after refund. Already removed from Sold,
+                      so Net does not subtract it again.
                     </Typography>
                   </Box>
                 )}
