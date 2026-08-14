@@ -1,17 +1,42 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { getDashboardData } from 'src/api/Dashboard';
-import { Grid, Container, Typography, Card, Table, TableHead, TableBody, TableRow, TableCell, Chip, Box } from '@mui/material';
+import {
+  Grid,
+  Container,
+  Typography,
+  Card,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Chip,
+  Box,
+  Collapse,
+  IconButton,
+  Autocomplete,
+  TextField,
+} from '@mui/material';
 import { useSnackbar } from 'notistack';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import { getPaymentData } from 'src/api/PaymentApi';
+import { getBrandData } from 'src/api/BrandApi';
+import { getItemData } from 'src/api/ItemApi';
 
 // components
 import { useSettingsContext } from '../../components/settings';
 import Loader from '../../components/loading-screen';
 import { useAuthContext } from '../../auth/useAuthContext';
+import { useOutlet } from '../../contexts/OutletContext';
+import { OutletId } from 'src/config/outlets';
 // sections
 import {
   AnalyticsWebsiteVisits,
   AnalyticsWidgetSummary,
+  DailyItemActivityTable,
+  DailyItemActivity,
 } from '../../sections/@dashboard/general/analytics';
 
 // ----------------------------------------------------------------------
@@ -20,6 +45,7 @@ export default function GeneralAnalyticsPage() {
   const { themeStretch } = useSettingsContext();
   const { enqueueSnackbar } = useSnackbar();
   const { user } = useAuthContext();
+  const { outletId } = useOutlet();
   const [dataLoad, setDataLoad] = useState(false);
   const [dashboardData, setDashboardData] = useState<any>({
     totalProducts: 0,
@@ -29,6 +55,7 @@ export default function GeneralAnalyticsPage() {
     lowStockItemsList: [],
     stockInToday: 0,
     stockOutToday: 0,
+    dailyItemActivity: [] as DailyItemActivity[],
     userVisitChartData: {
       xAxis: {
         name: '',
@@ -42,6 +69,12 @@ export default function GeneralAnalyticsPage() {
   });
   const [xAxisLabels, setXAxisLabels] = useState<string[]>([]);
   const [chartSeries, setChartSeries] = useState<any[]>([]);
+  const [monthlySales, setMonthlySales] = useState(0);
+  const [lowStockOpen, setLowStockOpen] = useState(true);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [selectedBrand, setSelectedBrand] = useState<any | null>(null);
+  const [brandTotalProducts, setBrandTotalProducts] = useState<number | null>(null);
+  const [brandTotalTransactions, setBrandTotalTransactions] = useState<number | null>(null);
 
   const loadDashboardData = useCallback(async () => {
     if (!user?.companyID) {
@@ -51,8 +84,24 @@ export default function GeneralAnalyticsPage() {
 
     try {
       setDataLoad(true);
-      const data = await getDashboardData(user.companyID);
+      const outletParam = outletId === 'combined' ? undefined : outletId;
+      const data = await getDashboardData(user.companyID, outletParam);
+      const payments = await getPaymentData(user.companyID, outletParam);
+      const loadedBrands = await getBrandData(user.companyID);
       setDashboardData(data);
+      setBrands(Array.isArray(loadedBrands) ? loadedBrands : []);
+      const now = new Date();
+      const monthlyTotal = (Array.isArray(payments) ? payments : [])
+        .filter((payment: any) => {
+          const parsedDate = new Date(payment.date || payment.createdAt);
+          return (
+            parsedDate.getMonth() === now.getMonth() &&
+            parsedDate.getFullYear() === now.getFullYear() &&
+            !payment.refunded
+          );
+        })
+        .reduce((sum: number, payment: any) => sum + (Number(payment.grandTotal) || 0), 0);
+      setMonthlySales(monthlyTotal);
 
       setXAxisLabels(data?.userVisitChartData?.xAxis?.categories || []);
       setChartSeries(
@@ -70,11 +119,73 @@ export default function GeneralAnalyticsPage() {
       });
       setDataLoad(false);
     }
-  }, [enqueueSnackbar, user?.companyID]);
+  }, [enqueueSnackbar, outletId, user?.companyID]);
+
+  const loadBrandScopedData = useCallback(async () => {
+    if (!user?.companyID || !selectedBrand?._id) {
+      setBrandTotalProducts(null);
+      setBrandTotalTransactions(null);
+      return;
+    }
+    try {
+      const [items, payments] = await Promise.all([
+        getItemData(user.companyID, selectedBrand._id),
+        getPaymentData(user.companyID, outletId === 'combined' ? undefined : outletId),
+      ]);
+
+      const scopedPayments = (Array.isArray(payments) ? payments : []).filter((payment: any) =>
+        (payment.items || []).some(
+          (item: any) => (item.brandId?._id || item.brandId)?.toString() === selectedBrand._id.toString()
+        )
+      );
+
+      const now = new Date();
+      const brandMonthlySales = scopedPayments
+        .filter((payment: any) => {
+          const parsedDate = new Date(payment.date || payment.createdAt);
+          return (
+            parsedDate.getMonth() === now.getMonth() &&
+            parsedDate.getFullYear() === now.getFullYear() &&
+            !payment.refunded &&
+            !payment.isReversal
+          );
+        })
+        .reduce((sum: number, payment: any) => sum + (Number(payment.grandTotal) || 0), 0);
+
+      setMonthlySales(brandMonthlySales);
+      setBrandTotalProducts(Array.isArray(items) ? items.length : 0);
+      setBrandTotalTransactions(scopedPayments.length);
+    } catch (error) {
+      console.error('Error loading brand-scoped analytics:', error);
+      enqueueSnackbar('Error loading brand analytics', { variant: 'warning' });
+    }
+  }, [enqueueSnackbar, outletId, selectedBrand, user?.companyID]);
 
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
+
+  useEffect(() => {
+    loadBrandScopedData();
+  }, [loadBrandScopedData]);
+
+  const displayedLowStockItems = selectedBrand?._id
+    ? (dashboardData.lowStockItemsList || []).filter(
+        (item: any) =>
+          (item.brandId?._id || item.brandId)?.toString() === selectedBrand._id.toString() ||
+          item.brandName === selectedBrand.brandName
+      )
+    : dashboardData.lowStockItemsList || [];
+
+  const displayedDailyItemActivity = useMemo(() => {
+    const activities = dashboardData.dailyItemActivity || [];
+    if (!selectedBrand?._id) return activities;
+    return activities.filter(
+      (activity: DailyItemActivity) =>
+        (activity.brandId && String(activity.brandId) === String(selectedBrand._id)) ||
+        activity.brandName === selectedBrand.brandName
+    );
+  }, [dashboardData.dailyItemActivity, selectedBrand]);
 
   return (
     <>
@@ -86,6 +197,17 @@ export default function GeneralAnalyticsPage() {
         <Typography variant="h4" sx={{ mb: 5 }}>
           Hi, Welcome back {''}
         </Typography>
+        <Grid container spacing={3} sx={{ mb: 1 }}>
+          <Grid item xs={12} md={4}>
+            <Autocomplete
+              options={brands}
+              getOptionLabel={(option) => option?.brandName || ''}
+              value={selectedBrand}
+              onChange={(_, newValue) => setSelectedBrand(newValue)}
+              renderInput={(params) => <TextField {...params} label="Filter by Brand (optional)" />}
+            />
+          </Grid>
+        </Grid>
 
         {dataLoad ? (
           <Loader />
@@ -94,7 +216,7 @@ export default function GeneralAnalyticsPage() {
             <Grid item xs={12} sm={6} md={3}>
               <AnalyticsWidgetSummary
                 title="Total Products"
-                total={dashboardData.totalProducts || 0}
+                total={brandTotalProducts ?? (dashboardData.totalProducts || 0)}
                 color="primary"
                 icon=""
               />
@@ -103,7 +225,7 @@ export default function GeneralAnalyticsPage() {
             <Grid item xs={12} sm={6} md={3}>
               <AnalyticsWidgetSummary
                 title="Total Transactions"
-                total={dashboardData.totalTransactions || 0}
+                total={brandTotalTransactions ?? (dashboardData.totalTransactions || 0)}
                 color="primary"
                 icon=""
               />
@@ -112,7 +234,7 @@ export default function GeneralAnalyticsPage() {
             <Grid item xs={12} sm={6} md={3}>
               <AnalyticsWidgetSummary
                 title="Low Stock Items"
-                total={dashboardData.lowStockItems || 0}
+                total={displayedLowStockItems.length || 0}
                 color="primary"
                 icon=""
               />
@@ -120,8 +242,8 @@ export default function GeneralAnalyticsPage() {
 
             <Grid item xs={12} sm={6} md={3}>
               <AnalyticsWidgetSummary
-                title="Total Sales"
-                total={`Rs. ${(dashboardData.totalSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                title="Total Monthly Sales"
+                total={`Rs. ${monthlySales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 color="primary"
                 icon=""
               />
@@ -140,60 +262,78 @@ export default function GeneralAnalyticsPage() {
               />
             </Grid>
 
-            {dashboardData.lowStockItemsList && dashboardData.lowStockItemsList.length > 0 && (
+            <Grid item xs={12} md={12} lg={12}>
+              <DailyItemActivityTable
+                activities={displayedDailyItemActivity}
+                isCombinedOutlets={outletId === 'combined'}
+                activeOutletId={(outletId === 'combined' ? 'AHANGAMA' : outletId) as OutletId}
+                brandId={selectedBrand?._id}
+              />
+            </Grid>
+
+            {displayedLowStockItems && displayedLowStockItems.length > 0 && (
               <Grid item xs={12} md={12} lg={12}>
                 <Card>
                   <Box sx={{ p: 3 }}>
-                    <Typography variant="h6" sx={{ mb: 2, color: 'error.main' }}>
-                      ⚠️ Low Stock Alerts
-                    </Typography>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Item Name</TableCell>
-                          <TableCell>Brand</TableCell>
-                          <TableCell>Category</TableCell>
-                          <TableCell align="right">Current Stock</TableCell>
-                          <TableCell align="center">Status</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {dashboardData.lowStockItemsList.map((item: any, index: number) => {
-                          const stockLevel = item.stockQuantity || 0;
-                          const statusColor = stockLevel === 0 ? 'error' : stockLevel <= 10 ? 'warning' : 'info';
-                          const statusText = stockLevel === 0 ? 'Out of Stock' : stockLevel <= 10 ? 'Critical' : 'Low';
-                          
-                          return (
-                            <TableRow key={index} hover>
-                              <TableCell>
-                                <Typography variant="subtitle2">{item.itemName || 'N/A'}</Typography>
-                              </TableCell>
-                              <TableCell>{item.brandName || 'N/A'}</TableCell>
-                              <TableCell>{item.itemCategory || 'N/A'}</TableCell>
-                              <TableCell align="right">
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    fontWeight: 'bold',
-                                    color: stockLevel === 0 ? 'error.main' : stockLevel <= 10 ? 'warning.main' : 'info.main',
-                                  }}
-                                >
-                                  {stockLevel}
-                                </Typography>
-                              </TableCell>
-                              <TableCell align="center">
-                                <Chip
-                                  label={statusText}
-                                  color={statusColor}
-                                  size="small"
-                                  variant="filled"
-                                />
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Typography variant="h6" sx={{ color: 'error.main' }}>
+                        ⚠️ Low Stock Alerts
+                      </Typography>
+                      <IconButton onClick={() => setLowStockOpen((prev) => !prev)}>
+                        {lowStockOpen ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                      </IconButton>
+                    </Box>
+                    <Collapse in={lowStockOpen}>
+                      <Table>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Item Name</TableCell>
+                            <TableCell>Brand</TableCell>
+                            <TableCell>Category</TableCell>
+                            <TableCell align="right">Current Stock</TableCell>
+                            <TableCell align="center">Status</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {displayedLowStockItems.map((item: any, index: number) => {
+                            const stockLevel = item.stockQuantity || 0;
+                            const statusColor =
+                              stockLevel === 0 ? 'error' : stockLevel <= 10 ? 'warning' : 'info';
+                            const statusText =
+                              stockLevel === 0 ? 'Out of Stock' : stockLevel <= 10 ? 'Critical' : 'Low';
+
+                            return (
+                              <TableRow key={index} hover>
+                                <TableCell>
+                                  <Typography variant="subtitle2">{item.itemName || 'N/A'}</Typography>
+                                </TableCell>
+                                <TableCell>{item.brandName || 'N/A'}</TableCell>
+                                <TableCell>{item.itemCategory || 'N/A'}</TableCell>
+                                <TableCell align="right">
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      fontWeight: 'bold',
+                                      color:
+                                        stockLevel === 0
+                                          ? 'error.main'
+                                          : stockLevel <= 10
+                                            ? 'warning.main'
+                                            : 'info.main',
+                                    }}
+                                  >
+                                    {stockLevel}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Chip label={statusText} color={statusColor} size="small" variant="filled" />
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </Collapse>
                   </Box>
                 </Card>
               </Grid>

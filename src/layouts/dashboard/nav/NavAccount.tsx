@@ -38,13 +38,7 @@ export default function NavAccount() {
             {user?.firstName}
           </Typography>
           <Typography variant="body2" noWrap sx={{ color: 'text.secondary' }}>
-            <Typography variant="body2" noWrap sx={{ color: 'text.secondary' }}>
-              {user?.role === 'company-manager'
-                ? 'Company Admin'
-                : user?.role === 'super-admin'
-                ? 'SuperAdmin'
-                : ''}
-            </Typography>
+            {user?.role === 'company-manager' ? 'Company Admin' : user?.role === 'super-admin' ? 'SuperAdmin' : ''}
           </Typography>
         </Box>
       </StyledRoot>

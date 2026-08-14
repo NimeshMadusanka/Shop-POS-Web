@@ -55,6 +55,7 @@ const TABLE_HEAD = [
   { id: 'itemCategory', label: 'Product Category', align: 'left' },
   { id: 'itemPrice', label: 'Product Price(Rs)', align: 'left' },
   { id: 'itemDuration', label: 'Unit', align: 'left' },
+  { id: 'outletId', label: 'Outlet', align: 'left' },
   { id: 'stockQuantity', label: 'Stock Quantity', align: 'left' },
   { id: '', label: 'Action', align: 'center' },
 ];
@@ -93,6 +94,7 @@ export default function PaymentListPage() {
 
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterBrand, setFilterBrand] = useState<any>(null);
+  const [filterOutlet, setFilterOutlet] = useState('all');
 
   const dataFiltered = applyFilter({
     inputData: tableData,
@@ -101,13 +103,19 @@ export default function PaymentListPage() {
     filterRole,
     filterStatus,
     filterBrand,
+    filterOutlet,
   });
 
   const dataInPage = dataFiltered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const denseHeight = 72;
 
-  const isFiltered = filterName !== '' || filterRole !== 'all' || filterStatus !== 'all' || filterBrand !== null;
+  const isFiltered =
+    filterName !== '' ||
+    filterRole !== 'all' ||
+    filterStatus !== 'all' ||
+    filterBrand !== null ||
+    filterOutlet !== 'all';
 
   const isNotFound =
     (!dataFiltered.length && !!filterName) ||
@@ -155,6 +163,7 @@ export default function PaymentListPage() {
     setFilterRole('all');
     setFilterStatus('all');
     setFilterBrand(null);
+    setFilterOutlet('all');
   };
 
   const [dataLoad, setDataLoad] = useState(false);
@@ -169,7 +178,8 @@ export default function PaymentListPage() {
       setTableData(data);
     } else {
       // Load regular items for tabs 0 and 1
-      const data = await getItemData(companyID);
+      // Always fetch combined so local outlet filter can show All/A/B correctly.
+      const data = await getItemData(companyID, undefined, 'combined');
       setTableData(data);
     }
     // Load brand data
@@ -226,6 +236,11 @@ export default function PaymentListPage() {
                     onFilterName={handleFilterName}
                     onFilterRole={handleFilterRole}
                     onFilterBrand={handleFilterBrand}
+                    onFilterOutlet={(event) => {
+                      setPage(0);
+                      setFilterOutlet(event.target.value);
+                    }}
+                    filterOutlet={filterOutlet}
                     onResetFilter={handleResetFilter}
                   />
 
@@ -294,6 +309,11 @@ export default function PaymentListPage() {
                     onFilterName={handleFilterName}
                     onFilterRole={handleFilterRole}
                     onFilterBrand={handleFilterBrand}
+                    onFilterOutlet={(event) => {
+                      setPage(0);
+                      setFilterOutlet(event.target.value);
+                    }}
+                    filterOutlet={filterOutlet}
                     onResetFilter={handleResetFilter}
                   />
 
@@ -365,6 +385,11 @@ export default function PaymentListPage() {
                     onFilterName={handleFilterName}
                     onFilterRole={handleFilterRole}
                     onFilterBrand={handleFilterBrand}
+                    onFilterOutlet={(event) => {
+                      setPage(0);
+                      setFilterOutlet(event.target.value);
+                    }}
+                    filterOutlet={filterOutlet}
                     onResetFilter={handleResetFilter}
                   />
 
@@ -435,6 +460,7 @@ function applyFilter({
   filterStatus,
   filterRole,
   filterBrand,
+  filterOutlet,
 }: {
   inputData: NewItemCreate[];
   comparator: (a: any, b: any) => number;
@@ -442,6 +468,7 @@ function applyFilter({
   filterStatus: string;
   filterRole: string;
   filterBrand: any;
+  filterOutlet: string;
 }) {
   const stabilizedThis = inputData.map((el, index) => [el, index] as const);
 
@@ -466,6 +493,10 @@ function applyFilter({
     inputData = inputData.filter(
       (item) => item && (item as any).brandId && (item as any).brandId === filterBrand._id
     );
+  }
+
+  if (filterOutlet !== 'all') {
+    inputData = inputData.filter((item) => item?.outletId === filterOutlet);
   }
 
   //   if (filterStatus !== 'all') {

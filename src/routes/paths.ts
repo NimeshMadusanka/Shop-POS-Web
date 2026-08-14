@@ -169,6 +169,7 @@ payrun: {
   },
   cashier: {
     root: path(ROOTS_DASHBOARD, '/cashier'),
+    summary: path(ROOTS_DASHBOARD, '/cashier/summary'),
   },
   analytics: {
     root: path(ROOTS_DASHBOARD, '/analytics'),
@@ -181,6 +182,10 @@ payrun: {
   dailyReport: {
     root: path(ROOTS_DASHBOARD, '/daily-report'),
     list: path(ROOTS_DASHBOARD, '/daily-report/list'),
+  },
+  auditLog: {
+    root: path(ROOTS_DASHBOARD, '/audit-log'),
+    list: path(ROOTS_DASHBOARD, '/audit-log/list'),
   },
 
   category: {

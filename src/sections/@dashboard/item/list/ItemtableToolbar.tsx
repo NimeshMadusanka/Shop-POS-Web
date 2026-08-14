@@ -1,5 +1,5 @@
 // @mui
-import { Stack, InputAdornment, TextField, Button, Autocomplete } from '@mui/material';
+import { Stack, InputAdornment, TextField, Button, Autocomplete, MenuItem } from '@mui/material';
 // components
 import Iconify from '../../../../components/iconify';
 
@@ -14,6 +14,7 @@ type Props = {
   filterName: string;
   filterRole: string;
   filterBrand: Brand | null;
+  filterOutlet: string;
   isFiltered: boolean;
   optionsRole: string[];
   brandOptions: Brand[];
@@ -21,6 +22,7 @@ type Props = {
   onFilterName: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onFilterRole: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onFilterBrand: (event: any, newValue: Brand | null) => void;
+  onFilterOutlet: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 export default function ItemtableToolbar({
@@ -28,11 +30,13 @@ export default function ItemtableToolbar({
   filterName,
   filterRole,
   filterBrand,
+  filterOutlet,
   optionsRole,
   brandOptions,
   onFilterName,
   onFilterRole,
   onFilterBrand,
+  onFilterOutlet,
   onResetFilter,
 }: Props) {
   return (
@@ -85,6 +89,19 @@ export default function ItemtableToolbar({
         )}
         sx={{ minWidth: 200 }}
       />
+
+      <TextField
+        fullWidth
+        select
+        label="Outlet"
+        value={filterOutlet}
+        onChange={onFilterOutlet}
+        sx={{ minWidth: 180, maxWidth: 220 }}
+      >
+        <MenuItem value="all">All</MenuItem>
+        <MenuItem value="AHANGAMA">Ahangama</MenuItem>
+        <MenuItem value="ARUGAM_BAY">Arugam Bay</MenuItem>
+      </TextField>
 
       {isFiltered && (
         <Button

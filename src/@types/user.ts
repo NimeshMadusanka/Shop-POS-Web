@@ -7,6 +7,8 @@ export type IUserSocialLink = {
   twitterLink: string;
 };
 
+export type OutletId = 'AHANGAMA' | 'ARUGAM_BAY';
+
 export type IUserProfileFollowers = {
   follower: number;
   following: number;
@@ -97,6 +99,7 @@ export type NewItemCreate = {
       itemPrice: string;
       itemDuration: string;
       stockQuantity?: number;
+      outletId?: OutletId;
 };
 export type NewCustomerCreate = {
   _id: string;
@@ -119,8 +122,11 @@ export type NewCusloyaltyCreate = {
   itemName: string;
   offPercentage:string;
   discountName:string;
- description: string;
- status: 'active' | 'inactive';
+  description: string;
+  status: 'active' | 'inactive';
+  discountType?: 'combined' | 'brand' | 'store';
+  itemID?: string;
+  outletId?: OutletId;
 
 };
 
@@ -202,6 +208,16 @@ discount: number;
     lastName?: string;
     email?: string;
   };
+  specialNote?: string;
+  isReversal?: boolean;
+  reversalOf?: string;
+  refundedItems?: Array<{
+    itemId?: string;
+    quantity?: number;
+    refundedAt?: string;
+    reversalPaymentId?: string;
+  }>;
+  outletId?: OutletId;
 };
 
 export type StockActivity = {
@@ -212,6 +228,8 @@ export type StockActivity = {
   operationType: 'Stock-in' | 'Stock-out' | 'refunded-stock-in' | 'Returning-stock-out' | 'missing';
   operationDate: string;
   paymentId?: string | null;
+  outletId?: OutletId;
+  transferRef?: string | null;
 };
 
 export type PaymentItem = {
@@ -222,6 +240,8 @@ export type PaymentItem = {
   itemPrice: number;
   brandId?: string;
   brandName?: string;
+  offPercentage?: number;
+  outletId?: OutletId;
 };
 
 
@@ -348,14 +368,15 @@ export type IUserAccountGeneral = {
 };
 
 export type NewUserCreate = {
-  _id: string;
+  _id?: string;
   userName: string;
   email: string;
   role: string;
-  password: string;
+  password?: string;
   phoneNumber: string;
   emergencyPhoneNumber: string;
-  status: string;
+  status?: string;
+  assignedOutletId?: OutletId | null;
 };
 
 export type NewStudentCreate = {

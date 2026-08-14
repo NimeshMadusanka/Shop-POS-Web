@@ -8,15 +8,18 @@ import { yupResolver } from '@hookform/resolvers/yup';
 // @mui
 import { useNavigate } from 'react-router-dom';
 import { LoadingButton } from '@mui/lab';
-import { Box, Card, Grid, Stack, Autocomplete, TextField } from '@mui/material';
+import { Box, Card, Grid, Stack, Autocomplete, TextField, MenuItem } from '@mui/material';
 // @types
 import { NewCusloyaltyCreate } from '../../../@types/user';
 // assets
 // components
 import { useSnackbar } from '../../../components/snackbar';
-import FormProvider, { RHFTextField } from '../../../components/hook-form';
+import FormProvider, { RHFSelect, RHFTextField } from '../../../components/hook-form';
 import { PATH_DASHBOARD } from '../../../routes/paths';
 import { useAuthContext } from 'src/auth/useAuthContext';
+import { useOutlet } from 'src/contexts/OutletContext';
+import { OUTLETS, DEFAULT_OUTLET, OutletScope } from 'src/config/outlets';
+import { DISCOUNT_TYPE_OPTIONS } from 'src/utils/discountCalc';
 // ----------------------------------------------------------------------
 
 type FormValuesProps = {
@@ -25,6 +28,8 @@ type FormValuesProps = {
   description: string;
   itemID: string;
   discountName:string;
+  discountType: 'combined' | 'brand' | 'store';
+  outletId: OutletScope;
   id: string;
 };
 
@@ -42,6 +47,7 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
   const navigate = useNavigate();
   const [itemData, setItemData] = useState<Item[]>([]);
   const { user } = useAuthContext();
+  const { outletId } = useOutlet();
   const companyID = user?.companyID;
 
   const NewUserSchema = Yup.object().shape({
@@ -56,6 +62,9 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
       .required('Discount Name is required')
       .min(3, 'Discount Name must be at least 3 characters')
       .max(30, 'Discount Name must be less than 30 characters'),
+      outletId: Yup.string()
+        .oneOf([...OUTLETS, 'combined'], 'Select a valid outlet')
+        .required('Outlet is required'),
   });
 
   const defaultValues = useMemo(
@@ -64,6 +73,8 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
       itemName: userData?.itemName || '',
       description: userData?.description || '',
       offPercentage: userData?.offPercentage || '',
+      discountType: userData?.discountType || 'combined',
+      outletId: ((userData as any)?.outletId as OutletScope | undefined) || outletId || DEFAULT_OUTLET,
 
       id: userData?._id || '',
     }),
@@ -78,9 +89,11 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
   const {
     reset,
     setValue,
+    watch,
     handleSubmit,
     formState: { isSubmitting },
   } = methods;
+  const selectedOutlet = watch('outletId');
 
   useEffect(() => {
     if (isEdit && userData) {
@@ -93,10 +106,13 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
   }, [isEdit, userData]);
 
   const loadData = useCallback(async () => {
-    const data = await getItemData(companyID);
-
-    setItemData(data);
-  }, [companyID]);
+    if (!companyID || !selectedOutlet) {
+      setItemData([]);
+      return;
+    }
+    const data = await getItemData(companyID, undefined, selectedOutlet);
+    setItemData(Array.isArray(data) ? data : []);
+  }, [companyID, selectedOutlet]);
 
   useEffect(() => {
     loadData();
@@ -105,15 +121,17 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
   const onSubmit = async (data: FormValuesProps) => {
     try {
       // Destructure the properties from the data object
-      const { itemName, offPercentage, description, itemID,  discountName, id } = data;
+      const { itemName, offPercentage, description, itemID, discountName, discountType, outletId: formOutletId, id } = data;
 
       const payload = {
         itemName,
         offPercentage,
+        discountType,
         description,
         companyID,
         discountName,
         itemID,
+        outletId: formOutletId,
       };
 
       if (isEdit) {
@@ -146,6 +164,14 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
               }}
             >
                 <RHFTextField name="discountName" label="Discount Name" />
+              <RHFSelect name="outletId" label="Outlet">
+                <MenuItem value="combined">Combined (both outlets)</MenuItem>
+                {OUTLETS.map((outlet) => (
+                  <MenuItem key={outlet} value={outlet}>
+                    {outlet}
+                  </MenuItem>
+                ))}
+              </RHFSelect>
               <Autocomplete
                 fullWidth
                 autoHighlight
@@ -168,6 +194,13 @@ export default function UserNewEditForm({ isEdit = false, userData }: Props) {
                 }}
               />
               <RHFTextField name="offPercentage" label="OFF Percentage" />
+              <RHFSelect native name="discountType" label="Discount Type">
+                {DISCOUNT_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </RHFSelect>
               <RHFTextField name="description" label="Description" />
             </Box>
 

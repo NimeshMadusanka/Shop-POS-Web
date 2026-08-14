@@ -1,6 +1,6 @@
 // @mui
 import { useTheme } from '@mui/material/styles';
-import { Stack, AppBar, Toolbar, IconButton } from '@mui/material';
+import { Stack, AppBar, Toolbar, IconButton, FormControl, Select, MenuItem } from '@mui/material';
 // utils
 import { bgBlur } from '../../../utils/cssStyles';
 // hooks
@@ -15,6 +15,8 @@ import { useSettingsContext } from '../../../components/settings';
 //
 // import Searchbar from './Searchbar';
 import AccountPopover from './AccountPopover';
+import { useAuthContext } from '../../../auth/useAuthContext';
+import { useOutlet } from '../../../contexts/OutletContext';
 // import LanguagePopover from './LanguagePopover';
 // import ContactsPopover from './ContactsPopover';
 // import NotificationsPopover from './NotificationsPopover';
@@ -27,6 +29,8 @@ type Props = {
 
 export default function Header({ onOpenNav }: Props) {
   const theme = useTheme();
+  const { user } = useAuthContext();
+  const { outletId, setOutletId } = useOutlet();
 
   const { themeLayout } = useSettingsContext();
 
@@ -57,6 +61,17 @@ export default function Header({ onOpenNav }: Props) {
         justifyContent="flex-end"
         spacing={{ xs: 0.5, sm: 1.5 }}
       >
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <Select
+            value={outletId}
+            onChange={(e) => setOutletId(e.target.value as any)}
+            disabled={user?.role === 'cashier'}
+          >
+            {user?.role !== 'cashier' && <MenuItem value="combined">Combined</MenuItem>}
+            <MenuItem value="AHANGAMA">Ahangama</MenuItem>
+            <MenuItem value="ARUGAM_BAY">Arugam Bay</MenuItem>
+          </Select>
+        </FormControl>
         {/* <LanguagePopover />
 
         <NotificationsPopover />

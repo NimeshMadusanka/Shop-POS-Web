@@ -5,6 +5,9 @@ type CreateCusloyalty = {
   itemName: string;
   offPercentage: string;
   description: string;
+  itemID?: string;
+  companyID?: string;
+  outletId?: 'AHANGAMA' | 'ARUGAM_BAY' | 'combined';
 };
 
 const createCusloyaltyApi = async (payload: CreateCusloyalty, boolValue: boolean) => {
@@ -22,11 +25,11 @@ const updateCusloyaltyStatus = async (id: string, status: 'active' | 'inactive')
   return response?.data;
 };
 
-const getCusloyaltyData = async (companyID: string) => {
+const getCusloyaltyData = async (companyID: string, outletId?: string) => {
   if (!companyID) throw new Error('companyID is required');
 
   const response = await axios.get('/cusloyalty', {
-    params: { companyID },
+    params: { companyID, ...(outletId ? { outletId } : {}) },
   });
 
   return response?.data;

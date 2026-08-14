@@ -135,9 +135,11 @@ import {
   PaymentListPage,
   PaymentEditPage,
   CashierPage,
+  CashierDailySummaryPage,
   AnalyticsPage,
   SalesReportPage,
   EmailReportPage,
+  AuditLogPage,
   CardViewPage,
   WiretransferCreatePage,
   CusloyaltyCreatePage,
@@ -331,7 +333,10 @@ export default function Router() {
         },
         {
           path: 'cashier',
-          element: <CashierPage />,
+          children: [
+            { index: true, element: <CashierPage /> },
+            { path: 'summary', element: <CashierDailySummaryPage /> },
+          ],
         },
         {
           path: 'analytics',
@@ -349,6 +354,12 @@ export default function Router() {
           path: 'daily-report',
           children: [
             { path: 'list', element: <EmailReportPage /> },
+          ],
+        },
+        {
+          path: 'audit-log',
+          children: [
+            { path: 'list', element: <AuditLogPage /> },
           ],
         },
 

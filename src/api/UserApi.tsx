@@ -3,17 +3,29 @@ import axios from "src/utils/axios";
 type createUser = {
   userName: string;
   email: string;
-  password: string;
+  password?: string;
+  pin?: string;
   phoneNumber: string;
   emergencyPhoneNumber: string;
   role: string;
   itemSelect: string;
+  assignedOutletId?: 'AHANGAMA' | 'ARUGAM_BAY' | null;
 }
+
+type updateUser = Omit<createUser, 'itemSelect'> & {
+  itemSelect?: string;
+  status?: string;
+};
 
   const createUserApi = async (payload: createUser, boolValue:boolean) => {
     const response = await axios.post(`/user/hotel-user`, payload);
     return response?.data;
   }
+
+  const updateUserApi = async (id: string, payload: updateUser) => {
+    const response = await axios.put(`/user/hotel-user/${id}`, payload);
+    return response?.data;
+  };
 
   const getUserData = async() => {
     const response = await axios.get(`/user/get-hotel-user`);
@@ -24,5 +36,10 @@ type createUser = {
     const response = await axios.post(`/user/login-pin`, { email, pin });
     return response?.data;
   };
+
+  const deleteUserApi = async (id: string) => {
+    const response = await axios.delete(`/user/hotel-user/${id}`);
+    return response?.data;
+  };
   
-export {  getUserData, createUserApi, loginPinApi  };
+export { getUserData, createUserApi, updateUserApi, loginPinApi, deleteUserApi };

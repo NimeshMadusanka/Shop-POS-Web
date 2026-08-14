@@ -48,7 +48,9 @@ import { ThemeSettings, SettingsProvider } from './components/settings';
 // https://docs.minimals.cc/authentication/ts-version
 
 import { AuthProvider } from './auth/JwtContext';
+import { useAuthContext } from './auth/useAuthContext';
 import { AdminUnlockProvider } from './contexts/AdminUnlockContext';
+import { OutletProvider } from './contexts/OutletContext';
 // import { AuthProvider } from './auth/Auth0Context';
 // import { AuthProvider } from './auth/FirebaseContext';
 // import { AuthProvider } from './auth/AwsCognitoContext';
@@ -70,10 +72,12 @@ export default function App() {
                     <ThemeProvider>
                       <ThemeSettings>
                         <ThemeLocalization>
-                          <SnackbarProvider>
-                            <StyledChart />
-                            <Router />
-                          </SnackbarProvider>
+                          <AuthAwareOutletProvider>
+                            <SnackbarProvider>
+                              <StyledChart />
+                              <Router />
+                            </SnackbarProvider>
+                          </AuthAwareOutletProvider>
                         </ThemeLocalization>
                       </ThemeSettings>
                     </ThemeProvider>
@@ -86,5 +90,14 @@ export default function App() {
         </HelmetProvider>
       </AdminUnlockProvider>
     </AuthProvider>
+  );
+}
+
+function AuthAwareOutletProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuthContext();
+  return (
+    <OutletProvider role={user?.role} assignedOutletId={user?.assignedOutletId}>
+      {children}
+    </OutletProvider>
   );
 }
